@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <title>Arsip Digital BKAD</title>
+
+    <style>
+      /* --- CUSTOM SCROLLBAR STYLE --- */
+      
+      /* 1. Ukuran Scrollbar (Width untuk Vertikal, Height untuk Horizontal) */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      /* 2. Track (Jalur scrollbar) - Kita buat transparan biar gak ganggu */
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      /* 3. Thumb (Batang scrollbar yang ditarik) */
+      ::-webkit-scrollbar-thumb {
+        background: #e2e8f0; /* slate-200 */
+        border-radius: 20px; /* Biar membulat banget ala Pitch.io */
+        border: 3px solid #ffffff; /* Trik 'padding' biar batang kelihatan lebih slim */
+        transition: all 0.3s ease;
+      }
+
+      /* 4. Thumb pas di-hover (Biar interaktif) */
+      ::-webkit-scrollbar-thumb:hover {
+        background: #6366f1; /* indigo-500: Biar senada sama tema lu */
+        border: 2px solid #ffffff;
+      }
+
+      /* Khusus untuk Firefox (Beda mesin, beda kode) */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #e2e8f0 transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

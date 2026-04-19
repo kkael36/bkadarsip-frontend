@@ -1,0 +1,29 @@
+frontend/
+
+npm install
+npm install react-router-dom
+npm install -D tailwindcss@3 postcss autoprefixer 
+npx tailwindcss init -p
+npm install react-easy-crop 
+npm install xlsx-js-style file-saver   
+npm install recharts
+npm install html2canvas jspdf
+
+//kalau udah install xlsx dan file-saver
+npm uninstall xlsx
+npm install xlsx-js-style
+
+npm run dev
+
+backend/
+
+composer install
+php artisan install:api
+php artisan migrate
+php artisan storage:link
+php artisan serve
+
+tinker/
+
+\App\Models\User::create(['name'=>'Admin','email'=>'youremail@gmail.com','password'=>bcrypt('password123'),'rol
+e'=>'super_admin']);   
