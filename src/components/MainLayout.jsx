@@ -64,10 +64,12 @@ export default function MainLayout({ children }) {
                                 </span>
 
                                 <button
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
                                     className="flex items-center pl-0.5 pr-0.5 py-0.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl transition-all cursor-pointer group outline-none focus:ring-2 focus:ring-slate-200"
                                 >
+                                    
                                     <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white text-[11px] font-black overflow-hidden shadow-sm shadow-blue-100 border border-slate-200">
-                                        {/* FIX CLOUDINARY: Menampilkan URL langsung dari user.photo_profile */}
+                                        {/* FIX CLOUDINARY: Menggunakan URL langsung */}
                                         {user?.photo_profile ? (
                                             <img
                                                 src={user.photo_profile}
@@ -88,7 +90,7 @@ export default function MainLayout({ children }) {
                                     <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-md z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div className="px-4 py-3 flex items-start gap-3 border-b border-slate-100 mb-1">
                                             <div className="w-10 h-10 bg-blue-700 rounded-lg flex items-center justify-center text-white text-xs font-black overflow-hidden flex-shrink-0">
-                                                {/* FIX CLOUDINARY: Menampilkan URL langsung */}
+                                                {/* FIX CLOUDINARY: Menggunakan URL langsung */}
                                                 {user?.photo_profile ? (
                                                     <img src={user.photo_profile} alt="P" className="w-full h-full object-cover" />
                                                 ) : (
