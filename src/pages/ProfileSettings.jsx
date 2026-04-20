@@ -107,7 +107,7 @@ export default function ProfileSettings() {
 }
 
 // ------------------------------------------
-// 1. FOTO PROFIL
+// 1. FOTO PROFIL (FIX CLOUDINARY)
 // ------------------------------------------
 function ProfilePhotoCard({ user, syncUser, showAlert }) {
     const [loading, setLoading] = useState(false);
@@ -121,7 +121,10 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         setLoading(true);
         try {
             const b = await getCroppedImg(image, px);
-            const fd = new FormData(); fd.append('photo', b, 'p.jpg'); fd.append('name', user.name);
+            const fd = new FormData(); 
+            fd.append('photo', b, 'p.jpg'); 
+            fd.append('name', user.name);
+
             const res = await api.post('/user/update-general', fd);
             syncUser(res.data.user); 
             setShowModal(false);
@@ -137,13 +140,22 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         <div className="bg-white p-4 rounded-[2rem] border border-slate-50 shadow-sm text-center flex flex-col items-center justify-center">
             <div className="relative inline-block mb-4">
                 <div className="w-40 h-40 bg-indigo-600 rounded-[1.5rem] overflow-hidden border-4 border-white shadow-sm flex items-center justify-center text-white text-5xl font-black">
-                    {user?.photo_profile ? <img src={`https://bkadarsip-backend-production.up.railway.app/storage/${user.photo_profile}`} className="w-full h-full object-cover" alt="avatar" /> : user?.name?.charAt(0).toUpperCase()}
+                    {/* FIX CLOUDINARY: Menggunakan URL langsung */}
+                    {user?.photo_profile ? (
+                        <img src={user.photo_profile} className="w-full h-full object-cover" alt="avatar" />
+                    ) : (
+                        user?.name?.charAt(0).toUpperCase()
+                    )}
                 </div>
                 <label className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-3 rounded-xl cursor-pointer shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all border-[3px] border-white">
                     <i className="bi bi-camera-fill text-lg leading-none"></i>
                     <input type="file" className="hidden" accept="image/*" onChange={e => {
-                        const r = new FileReader(); r.readAsDataURL(e.target.files[0]);
-                        r.onload = () => { setImage(r.result); setShowModal(true); };
+                        const file = e.target.files[0];
+                        if (file) {
+                            const r = new FileReader(); 
+                            r.readAsDataURL(file);
+                            r.onload = () => { setImage(r.result); setShowModal(true); };
+                        }
                     }} />
                 </label>
             </div>
@@ -153,7 +165,9 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
             {showModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px]">
                     <div className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="relative h-72 w-full"><Cropper image={image} crop={crop} zoom={zoom} aspect={1} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, p) => setPx(p)} /></div>
+                        <div className="relative h-72 w-full">
+                            <Cropper image={image} crop={crop} zoom={zoom} aspect={1} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, p) => setPx(p)} />
+                        </div>
                         <div className="p-6 flex gap-4 items-center">
                             <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[11px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl uppercase tracking-widest transition-colors">Batal</button>
                             <button disabled={loading} onClick={save} className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold uppercase tracking-[0.2em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50">
@@ -228,24 +242,21 @@ function EmailWizard({ showAlert }) {
     const [showPass, setShowPass] = useState(false);
     const [form, setForm] = useState({ password: '', otp_old: '', new_email: '', otp_new: '' });
 
-    // State untuk Cooldown Request Email OTP
     const [cooldown, setCooldown] = useState(0);
 
-    // Hitung mundur kalau ada cooldown di localStorage saat komponen dimuat
     useEffect(() => {
         const storedTime = localStorage.getItem('emailOtpCooldown');
         if (storedTime) {
             const remaining = Math.floor((parseInt(storedTime) - Date.now()) / 1000);
             if (remaining > 0) {
                 setCooldown(remaining);
-                setStep(2); // Otomatis arahkan ke langkah OTP kalau masih cooldown
+                setStep(2); 
             } else {
                 localStorage.removeItem('emailOtpCooldown');
             }
         }
     }, []);
 
-    // Timer Interval untuk Cooldown
     useEffect(() => {
         let timer;
         if (cooldown > 0) {
@@ -272,12 +283,9 @@ function EmailWizard({ showAlert }) {
         setLoading(true);
         try { 
             await api.post('/user/request-email-change', { password: form.password }); 
-            
-            // Set Cooldown 3 Menit (180 Detik)
             const expiryTime = Date.now() + (180 * 1000);
             localStorage.setItem('emailOtpCooldown', expiryTime.toString());
             setCooldown(180);
-            
             setStep(2); 
             showAlert("Kode OTP berhasil dikirim ke email Anda.", "simpan");
         } catch (e) { 
@@ -409,24 +417,21 @@ function PasswordWizard({ showAlert }) {
     const [showConfirm, setShowConfirm] = useState(false); 
     const [form, setForm] = useState({ otp: '', password: '', password_confirmation: '' });
 
-    // State untuk Cooldown Request Password OTP
     const [cooldown, setCooldown] = useState(0);
 
-    // Hitung mundur kalau ada cooldown di localStorage saat komponen dimuat
     useEffect(() => {
         const storedTime = localStorage.getItem('pwdOtpCooldown');
         if (storedTime) {
             const remaining = Math.floor((parseInt(storedTime) - Date.now()) / 1000);
             if (remaining > 0) {
                 setCooldown(remaining);
-                setStep(2); // Otomatis ke OTP kalau masih ada waktu
+                setStep(2); 
             } else {
                 localStorage.removeItem('pwdOtpCooldown');
             }
         }
     }, []);
 
-    // Timer Interval untuk Cooldown
     useEffect(() => {
         let timer;
         if (cooldown > 0) {
@@ -453,12 +458,9 @@ function PasswordWizard({ showAlert }) {
         setLoading(true);
         try { 
             await api.post('/user/request-password-otp'); 
-            
-            // Set Cooldown 3 Menit (180 Detik)
             const expiryTime = Date.now() + (180 * 1000);
             localStorage.setItem('pwdOtpCooldown', expiryTime.toString());
             setCooldown(180);
-
             setStep(2); 
             showAlert("Kode OTP berhasil dikirim ke email.", "simpan");
         } catch (e) { 
