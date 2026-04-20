@@ -6,6 +6,15 @@ import { useNavigate } from 'react-router-dom';
 import Alert from '../components/Alert'; 
 import ConfirmModal from '../components/ConfirmModal'; 
 
+// HELPER: Penanganan URL Gambar yang cerdas
+const getProfileImageUrl = (photoPath) => {
+    if (!photoPath) return null;
+    // Jika sudah link lengkap (Cloudinary), pakai langsung
+    if (photoPath.startsWith('http')) return photoPath;
+    // Jika masih path pendek, arahkan ke backend Railway
+    return `https://bkadarsip-backend-production.up.railway.app/storage/${photoPath}`;
+};
+
 const getCroppedImg = async (imageSrc, pixelCrop) => {
     const image = new Image(); image.src = imageSrc;
     const canvas = document.createElement('canvas');
@@ -107,7 +116,7 @@ export default function ProfileSettings() {
 }
 
 // ------------------------------------------
-// 1. FOTO PROFIL (FIX CLOUDINARY)
+// 1. FOTO PROFIL (FIX URL HANDLING)
 // ------------------------------------------
 function ProfilePhotoCard({ user, syncUser, showAlert }) {
     const [loading, setLoading] = useState(false);
@@ -125,12 +134,13 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
             fd.append('photo', b, 'p.jpg'); 
             fd.append('name', user.name);
 
+            // POST ke Backend Railway
             const res = await api.post('/user/update-general', fd);
             syncUser(res.data.user); 
             setShowModal(false);
-            showAlert("Informasi profil berhasil diperbarui!", "simpan");
+            showAlert("Foto profil berhasil diperbarui via Cloudinary!", "simpan");
         } catch (e) { 
-            showAlert("Gagal menyimpan foto profil.", "hapus"); 
+            showAlert("Gagal menyimpan foto profil. Cek koneksi backend.", "hapus"); 
         } finally { 
             setLoading(false); 
         }
@@ -140,9 +150,13 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         <div className="bg-white p-4 rounded-[2rem] border border-slate-50 shadow-sm text-center flex flex-col items-center justify-center">
             <div className="relative inline-block mb-4">
                 <div className="w-40 h-40 bg-indigo-600 rounded-[1.5rem] overflow-hidden border-4 border-white shadow-sm flex items-center justify-center text-white text-5xl font-black">
-                    {/* FIX CLOUDINARY: Menggunakan URL langsung */}
                     {user?.photo_profile ? (
-                        <img src={user.photo_profile} className="w-full h-full object-cover" alt="avatar" />
+                        <img 
+                            src={getProfileImageUrl(user.photo_profile)} 
+                            className="w-full h-full object-cover" 
+                            alt="avatar" 
+                            onError={(e) => { e.target.src = "https://ui-avatars.com/api/?name=" + user.name }}
+                        />
                     ) : (
                         user?.name?.charAt(0).toUpperCase()
                     )}
