@@ -9,7 +9,7 @@ export default function MainLayout({ children }) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    // Deteksi URL langsung dari browser!
+    // Deteksi URL langsung dari browser
     const location = useLocation();
 
     // Map URL Path ke Judul Header
@@ -59,29 +59,27 @@ export default function MainLayout({ children }) {
                     <div className="flex items-center gap-6">
                         <div className="relative">
                             <div className='group flex items-center gap-3 cursor-pointer' onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                            <span className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wide">
+                                <span className="text-[10.5px] font-extrabold text-slate-700 uppercase tracking-wide">
                                     {user?.name?.split(' ')[0]}
                                 </span>
 
-                            {/* 🔥 FIX: Tombol dan PP dikembalikan jadi Kotak (rounded-2xl & rounded-xl) */}
-                            <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="flex items-center pl-0.5 pr-0.5 py-0.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl transition-all cursor-pointer group outline-none focus:ring-2 focus:ring-slate-200"
-                            >
-                                
-                                <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white text-[11px] font-black overflow-hidden shadow-sm shadow-blue-100 border border-slate-200">
-                                    {user?.photo_profile ? (
-                                        <img
-                                            src={`https://bkadarsip-backend-production.up.railway.app/storage/${user.photo_profile}`}
-                                            alt="Profile"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        user?.name?.charAt(0).toUpperCase()
-                                    )}
-                                </div>
-                            </button>
-                             </div>
+                                <button
+                                    className="flex items-center pl-0.5 pr-0.5 py-0.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl transition-all cursor-pointer group outline-none focus:ring-2 focus:ring-slate-200"
+                                >
+                                    <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white text-[11px] font-black overflow-hidden shadow-sm shadow-blue-100 border border-slate-200">
+                                        {/* FIX CLOUDINARY: Menampilkan URL langsung dari user.photo_profile */}
+                                        {user?.photo_profile ? (
+                                            <img
+                                                src={user.photo_profile}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            user?.name?.charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                </button>
+                            </div>
 
                             {/* DROPDOWN PROFILE */}
                             {isMenuOpen && (
@@ -90,8 +88,9 @@ export default function MainLayout({ children }) {
                                     <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-md z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div className="px-4 py-3 flex items-start gap-3 border-b border-slate-100 mb-1">
                                             <div className="w-10 h-10 bg-blue-700 rounded-lg flex items-center justify-center text-white text-xs font-black overflow-hidden flex-shrink-0">
+                                                {/* FIX CLOUDINARY: Menampilkan URL langsung */}
                                                 {user?.photo_profile ? (
-                                                    <img src={`https://bkadarsip-backend-production.up.railway.app/storage/${user.photo_profile}`} alt="P" className="w-full h-full object-cover" />
+                                                    <img src={user.photo_profile} alt="P" className="w-full h-full object-cover" />
                                                 ) : (
                                                     user?.name?.charAt(0).toUpperCase()
                                                 )}
@@ -128,7 +127,6 @@ export default function MainLayout({ children }) {
                     </div>
                 </header>
 
-                {/* 🔥 ID 'area-scroll-utama' DITAMBAHKAN DI SINI 🔥 */}
                 <main id="area-scroll-utama" className="flex-1 overflow-y-auto px-4 md:px-10 pb-10 custom-scrollbar relative scroll-smooth">
                     {children}
 
