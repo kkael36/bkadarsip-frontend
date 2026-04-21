@@ -13,7 +13,7 @@ export default function FormArsip() {
   const [alert, setAlert] = useState({ show: false, message: "", type: "" });
   const [errors, setErrors] = useState({});
 
-  // 🔥 STATE TIMER EXPIRED
+  // STATE TIMER EXPIRED
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
 
@@ -40,7 +40,7 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // 🔥 LOGIKA HITUNG MUNDUR & AUTO DELETE
+  // LOGIKA HITUNG MUNDUR & AUTO DELETE
   useEffect(() => {
     if (timeLeft === 0) {
       handleExpire();
@@ -91,6 +91,9 @@ export default function FormArsip() {
     }
   };
 
+  /**
+   * 🔥 PERBAIKAN HANDLE UPLOAD
+   */
   const handleUpload = async (image) => {
     setPreview(image); 
     setEnhanced(null); 
@@ -103,24 +106,33 @@ export default function FormArsip() {
       const formData = new FormData();
       formData.append("file", file);
 
+      // Pastikan endpoint ini sesuai dengan route di Laravel kamu
       const res = await api.post("/upload-sp2d", formData);
+      
       if (res.data.success) {
-        setEnhanced(res.data.image_enhanced);
+        // 1. Update form state menggunakan Nullish Coalescing (??) 
+        // Agar jika data kosong tetap ter-update dan tidak menggunakan nilai lama
         setForm(prev => ({
           ...prev,
-          kode_klas: res.data.kode_klas || prev.kode_klas,
-          no_surat: res.data.no_surat || prev.no_surat,
-          tahun: res.data.tahun || prev.tahun,
-          nominal: res.data.nominal || prev.nominal,
-          keperluan: res.data.keperluan || prev.keperluan,
+          kode_klas: res.data.kode_klas ?? "",
+          no_surat: res.data.no_surat ?? "",
+          tahun: res.data.tahun ?? "",
+          nominal: res.data.nominal ?? "",
+          keperluan: res.data.keperluan ?? "",
           file_dokumen: res.data.file_dokumen
         }));
+
+        // 2. Set Preview Image Enhanced dari Storage Railway
+        // Ganti URL ini dengan domain asli Railway kamu
+        const railwayStorageUrl = "https://backend-arsip-production.up.railway.app/storage/";
+        setEnhanced(railwayStorageUrl + res.data.file_dokumen);
         
-        setAlert({ show: true, message: "OCR Berhasil!", type: "update" });
+        setAlert({ show: true, message: "OCR Berhasil! Silahkan periksa data.", type: "update" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
-        setTimeLeft(300); 
+        setTimeLeft(300); // Reset timer ke 5 menit
       }
     } catch (error) {
+      console.error("OCR Error:", error);
       setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
     } finally { 
       setLoading(false); 
@@ -137,7 +149,10 @@ export default function FormArsip() {
       if (res.data.success) {
         setAlert({ show: true, message: "Arsip Berhasil Disimpan!", type: "simpan" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
-        setForm(initialForm); setPreview(null); setEnhanced(null); setTimeLeft(null);
+        setForm(initialForm); 
+        setPreview(null); 
+        setEnhanced(null); 
+        setTimeLeft(null);
       }
     } catch (error) {
       if (error.response?.status === 422) {
@@ -164,7 +179,6 @@ export default function FormArsip() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          {/* 🔥 HINT LAMPU DENGAN KETERANGAN EXPIRED */}
           <div className="relative group">
             <button
               type="button"
@@ -189,18 +203,13 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* KOLOM KIRI */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
-          
-          {/* BOX SCANNER (TETAP DI ATAS) */}
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
               <DocumentScanner onCrop={handleUpload} />
             </div>
           </div>
 
-          {/* 🔥 PREVIEW IMAGE (IKUT SCROLL/STICKY) */}
           {preview && (
             <div className="sticky top-6 animate-in fade-in zoom-in-95 duration-300">
               <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm p-2">
@@ -227,7 +236,6 @@ export default function FormArsip() {
           )}
         </div>
 
-        {/* FORM AREA */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
