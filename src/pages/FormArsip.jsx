@@ -12,10 +12,9 @@ export default function FormArsip() {
   const [isSaving, setIsSaving] = useState(false);
   const [alert, setAlert] = useState({ show: false, message: "", type: "" });
   const [errors, setErrors] = useState({});
-
-  // STATE TIMER EXPIRED (180 detik = 3 Menit)
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
+  const [ocrDebug, setOcrDebug] = useState(null); // Untuk debug
 
   const initialForm = {
     kode_klas: "",
@@ -40,7 +39,6 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // LOGIKA HITUNG MUNDUR & AUTO DELETE
   useEffect(() => {
     if (timeLeft === 0) {
       handleExpire();
@@ -57,7 +55,6 @@ export default function FormArsip() {
   const handleExpire = async () => {
     const urlToDelete = form.file_dokumen;
     
-    // Reset UI State
     setPreview(null);
     setEnhanced(null);
     setTimeLeft(null);
@@ -65,7 +62,6 @@ export default function FormArsip() {
     
     if (timerRef.current) clearInterval(timerRef.current);
 
-    // Hapus dari Cloudinary melalui Backend
     if (urlToDelete) {
       try {
         await api.delete("/delete-temp-file", { data: { filename: urlToDelete } });
@@ -94,49 +90,103 @@ export default function FormArsip() {
     }
   };
 
-  /**
-   * 🔥 HANDLE UPLOAD (Sinkron dengan Cloudinary Backend)
-   */
   const handleUpload = async (image) => {
     setPreview(image); 
     setEnhanced(null); 
     setLoading(true);
+    setOcrDebug(null);
     setAlert({ show: true, message: "Sistem Sedang Membaca Dokumen...", type: "info" });
 
     try {
       const blob = await fetch(image).then(r => r.blob());
-      const file = new File([blob], "scan.jpg");
+      const file = new File([blob], "scan.jpg", { type: "image/jpeg" });
       const formData = new FormData();
       formData.append("file", file);
 
       const res = await api.post("/upload-sp2d", formData);
       
+      // Debug logging
+      console.log("=== FULL RESPONSE ===");
+      console.log("Status:", res.status);
+      console.log("Data:", res.data);
+      console.log("Success:", res.data.success);
+      console.log("File Dokumen:", res.data.file_dokumen);
+      console.log("Kode Klas:", res.data.kode_klas);
+      console.log("No Surat:", res.data.no_surat);
+      console.log("Tahun:", res.data.tahun);
+      console.log("Nominal:", res.data.nominal);
+      console.log("Keperluan:", res.data.keperluan);
+      console.log("Raw OCR (first 300 chars):", res.data.raw_ocr?.substring(0, 300));
+      console.log("Warning:", res.data.warning);
+      
+      setOcrDebug({
+        raw: res.data.raw_ocr?.substring(0, 500),
+        parsed: {
+          kode_klas: res.data.kode_klas,
+          no_surat: res.data.no_surat,
+          tahun: res.data.tahun,
+          nominal: res.data.nominal,
+          keperluan: res.data.keperluan
+        }
+      });
+      
       if (res.data.success) {
-        // Update Form State dengan data OCR
+        // Cek apakah ada data yang terdeteksi
+        const hasData = res.data.kode_klas || 
+                       res.data.no_surat || 
+                       res.data.nominal || 
+                       res.data.keperluan;
+        
+        if (!hasData) {
+          setAlert({ 
+            show: true, 
+            message: res.data.warning || "OCR tidak dapat membaca data. Silakan input manual.", 
+            type: "info" 
+          });
+        } else {
+          const detectedFields = [];
+          if (res.data.no_surat) detectedFields.push(`No Surat: ${res.data.no_surat}`);
+          if (res.data.nominal) detectedFields.push(`Nominal: ${res.data.nominal}`);
+          
+          setAlert({ 
+            show: true, 
+            message: `OCR Berhasil! ${detectedFields.join(', ')}`, 
+            type: "update" 
+          });
+        }
+        
+        // Update form dengan data OCR
         setForm(prev => ({
           ...prev,
-          kode_klas: res.data.kode_klas ?? "",
-          no_surat: res.data.no_surat ?? "",
-          tahun: res.data.tahun ?? "",
-          nominal: res.data.nominal ?? "",
-          keperluan: res.data.keperluan ?? "",
-          file_dokumen: res.data.file_dokumen // URL Cloudinary
+          kode_klas: res.data.kode_klas || prev.kode_klas,
+          no_surat: res.data.no_surat || prev.no_surat,
+          tahun: res.data.tahun || prev.tahun,
+          nominal: res.data.nominal || prev.nominal,
+          keperluan: res.data.keperluan || prev.keperluan,
+          file_dokumen: res.data.file_dokumen
         }));
 
-        // Tampilkan hasil pemrosesan (sudah URL Cloudinary)
         setEnhanced(res.data.file_dokumen);
-        
-        setAlert({ show: true, message: "OCR Berhasil! Data terisi otomatis.", type: "update" });
-        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
-        
-        // Mulai Timer 3 Menit (180 detik)
-        setTimeLeft(180); 
+        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
+        setTimeLeft(180);
+      } else {
+        throw new Error(res.data.error || "Upload gagal");
       }
     } catch (error) {
       console.error("Upload/OCR Error:", error);
-      setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
+      console.error("Error response:", error.response?.data);
+      setAlert({ 
+        show: true, 
+        message: error.response?.data?.error || error.message || "Gagal memproses dokumen.", 
+        type: "hapus" 
+      });
     } finally { 
-      setLoading(false); 
+      setLoading(false);
+      setTimeout(() => {
+        if (alert.type === "info") {
+          setAlert(prev => ({ ...prev, show: false }));
+        }
+      }, 5000);
     }
   };
 
@@ -151,17 +201,20 @@ export default function FormArsip() {
         setAlert({ show: true, message: "Arsip Berhasil Disimpan!", type: "simpan" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
         
-        // Reset Everything
         setForm(initialForm); 
         setPreview(null); 
         setEnhanced(null); 
         setTimeLeft(null);
+        setOcrDebug(null);
+        
+        setTimeout(() => navigate("/arsip"), 2000);
       }
     } catch (error) {
       if (error.response?.status === 422) {
         setErrors(error.response.data.errors);
-        setAlert({ show: true, message: "Validasi Gagal.", type: "hapus" });
+        setAlert({ show: true, message: "Validasi Gagal. Periksa kembali data.", type: "hapus" });
       } else {
+        console.error("Save error:", error);
         setAlert({ show: true, message: "Gagal menyimpan ke server.", type: "hapus" });
       }
     } finally {
@@ -177,7 +230,7 @@ export default function FormArsip() {
       {/* HEADER AREA */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
         <div className="text-left w-full md:w-auto">
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none ">Input Arsip Baru</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
           <p className="text-xs text-slate-400 font-medium mt-1">Gunakan pemindaian otomatis untuk efisiensi input data</p>
         </div>
 
@@ -203,7 +256,7 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* KOLOM KIRI (Scanner & Preview) */}
+        {/* KOLOM KIRI */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
@@ -217,7 +270,13 @@ export default function FormArsip() {
                 <div className="relative rounded-[1.8rem] overflow-hidden">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
                   
-                  {timeLeft !== null && (
+                  {loading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold">Memproses OCR...</div>
+                    </div>
+                  )}
+                  
+                  {timeLeft !== null && !loading && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
                       <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                       AUTO DELETE: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
@@ -235,9 +294,24 @@ export default function FormArsip() {
               </div>
             </div>
           )}
+          
+          {/* Debug Panel - tampilkan hanya di development */}
+          {ocrDebug && process.env.NODE_ENV === 'development' && (
+            <div className="bg-gray-900 text-white p-4 rounded-xl text-xs font-mono">
+              <details>
+                <summary className="cursor-pointer font-bold mb-2">Debug OCR</summary>
+                <div className="mt-2">
+                  <p className="text-yellow-400">Parsed Data:</p>
+                  <pre>{JSON.stringify(ocrDebug.parsed, null, 2)}</pre>
+                  <p className="text-yellow-400 mt-2">Raw OCR Text:</p>
+                  <pre className="whitespace-pre-wrap">{ocrDebug.raw}</pre>
+                </div>
+              </details>
+            </div>
+          )}
         </div>
 
-        {/* KOLOM KANAN (Form) */}
+        {/* KOLOM KANAN */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
@@ -281,7 +355,7 @@ export default function FormArsip() {
               disabled={isSaving || loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 outline-none"
             >
-              {isSaving ? "Menyimpan ke Sistem..." : "Simpan Arsip Digital"}
+              {isSaving ? "Menyimpan ke Sistem..." : loading ? "Memproses OCR..." : "Simpan Arsip Digital"}
             </button>
           </form>
         </div>
@@ -290,7 +364,7 @@ export default function FormArsip() {
   );
 }
 
-// --- RENDER HELPERS (Sama seperti sebelumnya) ---
+// Components
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
