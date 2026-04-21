@@ -134,7 +134,6 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         fd.append('photo', b, 'profile.jpg'); 
         fd.append('name', user.name);
 
-        // ✅ PERBAIKI: tambah slash di depan
         const res = await api.post('/user/update-general', fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -146,7 +145,12 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         showAlert("Profil berhasil diperbarui!", "simpan");
     } catch (e) {
         console.error("Upload Error:", e.response);
-        showAlert(e.response?.data?.message || "Gagal simpan profil.", "hapus");
+        
+        // Tampilkan pesan error lengkap dari backend
+        const backendMessage = e.response?.data?.message;
+        const errorMessage = backendMessage || "Gagal simpan profil.";
+        
+        showAlert(errorMessage, "hapus");
     } finally {
         setLoading(false);
     }
