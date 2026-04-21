@@ -143,12 +143,31 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         syncUser(res.data.user); 
         setShowModal(false);
         showAlert("Profil berhasil diperbarui!", "simpan");
-    } catch (e) {
-        console.error("Upload Error:", e.response);
+    } catch (err) {
+        console.error("Full Error:", err);
+        console.error("Response Data:", err.response?.data);
+        console.error("Status Code:", err.response?.status);
         
-        // Tampilkan pesan error lengkap dari backend
-        const backendMessage = e.response?.data?.message;
-        const errorMessage = backendMessage || "Gagal simpan profil.";
+        // Ambil pesan error dari backend
+        let errorMessage = "Gagal simpan profil.";
+        
+        if (err.response?.data?.message) {
+            errorMessage = err.response.data.message;
+        }
+        
+        // Jika ada error validation (biasanya array)
+        if (err.response?.data?.errors) {
+            const errors = err.response.data.errors;
+            const firstError = Object.values(errors)[0]?.[0];
+            if (firstError) {
+                errorMessage = firstError;
+            }
+        }
+        
+        // Jika error dari Cloudinary
+        if (err.response?.data?.error) {
+            errorMessage = err.response.data.error;
+        }
         
         showAlert(errorMessage, "hapus");
     } finally {
