@@ -1,10 +1,12 @@
 import axios from 'axios';
 
 const api = axios.create({
+  // PASTIKAN HTTPS DAN TIDAK ADA TANDA / DI AKHIR API
   baseURL: 'https://bkadarsip-backend-production.up.railway.app/api',
   timeout: 120000,   
   headers: {
     'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest' // Bantu Laravel deteksi request AJAX
   },
 });
 
@@ -13,6 +15,12 @@ api.interceptors.request.use(config => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Memaksa agar semua request menggunakan HTTPS secara internal
+    if (config.url.startsWith('http://')) {
+        config.url = config.url.replace('http://', 'https://');
+    }
+    
     return config;
 }, error => Promise.reject(error));
 

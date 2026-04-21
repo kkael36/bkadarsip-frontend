@@ -131,10 +131,12 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
     try {
         const b = await getCroppedImg(image, px);
         const fd = new FormData(); 
-        fd.append('photo', b, 'p.jpg'); 
+        // Nama key harus 'photo' sesuai dengan controller
+        fd.append('photo', b, 'profile.jpg'); 
         fd.append('name', user.name);
 
-        // Tambahkan header explicit jika perlu
+        // 1. Pakai path 'user/update-general' (tanpa slash / di depan)
+        // 2. Paksa header Content-Type
         const res = await api.post('user/update-general', fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -145,8 +147,9 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
         setShowModal(false);
         showAlert("Profil berhasil diperbarui!", "simpan");
     } catch (e) {
-        console.error(e);
-        showAlert("Gagal simpan profil.", "hapus");
+        console.error("Upload Error:", e.response);
+        // Jika masih error 405/500, kita bisa lihat detailnya di console
+        showAlert(e.response?.data?.message || "Gagal simpan profil.", "hapus");
     } finally {
         setLoading(false);
     }
