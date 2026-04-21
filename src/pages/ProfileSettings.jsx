@@ -127,24 +127,30 @@ function ProfilePhotoCard({ user, syncUser, showAlert }) {
     const [px, setPx] = useState(null);
 
     const save = async () => {
-        setLoading(true);
-        try {
-            const b = await getCroppedImg(image, px);
-            const fd = new FormData(); 
-            fd.append('photo', b, 'p.jpg'); 
-            fd.append('name', user.name);
+    setLoading(true);
+    try {
+        const b = await getCroppedImg(image, px);
+        const fd = new FormData(); 
+        fd.append('photo', b, 'p.jpg'); 
+        fd.append('name', user.name);
 
-            // POST ke Backend Railway
-            const res = await api.post('/user/update-general', fd);
-            syncUser(res.data.user); 
-            setShowModal(false);
-            showAlert("Foto profil berhasil diperbarui via Cloudinary!", "simpan");
-        } catch (e) { 
-            showAlert("Gagal menyimpan foto profil. Cek koneksi backend.", "hapus"); 
-        } finally { 
-            setLoading(false); 
-        }
-    };
+        // Tambahkan header explicit jika perlu
+        const res = await api.post('user/update-general', fd, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            }
+        });
+        
+        syncUser(res.data.user); 
+        setShowModal(false);
+        showAlert("Profil berhasil diperbarui!", "simpan");
+    } catch (e) {
+        console.error(e);
+        showAlert("Gagal simpan profil.", "hapus");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="bg-white p-4 rounded-[2rem] border border-slate-50 shadow-sm text-center flex flex-col items-center justify-center">
