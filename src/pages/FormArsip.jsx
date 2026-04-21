@@ -13,7 +13,7 @@ export default function FormArsip() {
   const [alert, setAlert] = useState({ show: false, message: "", type: "" });
   const [errors, setErrors] = useState({});
 
-  // STATE TIMER EXPIRED
+  // STATE TIMER EXPIRED (180 detik = 3 Menit)
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
 
@@ -55,7 +55,9 @@ export default function FormArsip() {
   }, [timeLeft]);
 
   const handleExpire = async () => {
-    const fileNameToDelete = form.file_dokumen;
+    const urlToDelete = form.file_dokumen;
+    
+    // Reset UI State
     setPreview(null);
     setEnhanced(null);
     setTimeLeft(null);
@@ -63,17 +65,18 @@ export default function FormArsip() {
     
     if (timerRef.current) clearInterval(timerRef.current);
 
-    if (fileNameToDelete) {
+    // Hapus dari Cloudinary melalui Backend
+    if (urlToDelete) {
       try {
-        await api.delete("/delete-temp-file", { data: { filename: fileNameToDelete } });
+        await api.delete("/delete-temp-file", { data: { filename: urlToDelete } });
         setAlert({ 
           show: true, 
-          message: "Sesi habis. File dokumen telah dihapus otomatis dari server.", 
+          message: "Sesi habis. Foto di Cloudinary telah dihapus otomatis.", 
           type: "hapus" 
         });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
       } catch (error) {
-        console.error("Gagal menghapus file di server:", error);
+        console.error("Gagal menghapus file di Cloudinary:", error);
       }
     }
   };
@@ -92,7 +95,7 @@ export default function FormArsip() {
   };
 
   /**
-   * 🔥 PERBAIKAN HANDLE UPLOAD
+   * 🔥 HANDLE UPLOAD (Sinkron dengan Cloudinary Backend)
    */
   const handleUpload = async (image) => {
     setPreview(image); 
@@ -106,12 +109,10 @@ export default function FormArsip() {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Pastikan endpoint ini sesuai dengan route di Laravel kamu
       const res = await api.post("/upload-sp2d", formData);
       
       if (res.data.success) {
-        // 1. Update form state menggunakan Nullish Coalescing (??) 
-        // Agar jika data kosong tetap ter-update dan tidak menggunakan nilai lama
+        // Update Form State dengan data OCR
         setForm(prev => ({
           ...prev,
           kode_klas: res.data.kode_klas ?? "",
@@ -119,20 +120,20 @@ export default function FormArsip() {
           tahun: res.data.tahun ?? "",
           nominal: res.data.nominal ?? "",
           keperluan: res.data.keperluan ?? "",
-          file_dokumen: res.data.file_dokumen
+          file_dokumen: res.data.file_dokumen // URL Cloudinary
         }));
 
-        // 2. Set Preview Image Enhanced dari Storage Railway
-        // Ganti URL ini dengan domain asli Railway kamu
-        const railwayStorageUrl = "https://backend-arsip-production.up.railway.app/storage/";
-        setEnhanced(railwayStorageUrl + res.data.file_dokumen);
+        // Tampilkan hasil pemrosesan (sudah URL Cloudinary)
+        setEnhanced(res.data.file_dokumen);
         
-        setAlert({ show: true, message: "OCR Berhasil! Silahkan periksa data.", type: "update" });
+        setAlert({ show: true, message: "OCR Berhasil! Data terisi otomatis.", type: "update" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
-        setTimeLeft(300); // Reset timer ke 5 menit
+        
+        // Mulai Timer 3 Menit (180 detik)
+        setTimeLeft(180); 
       }
     } catch (error) {
-      console.error("OCR Error:", error);
+      console.error("Upload/OCR Error:", error);
       setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
     } finally { 
       setLoading(false); 
@@ -149,6 +150,8 @@ export default function FormArsip() {
       if (res.data.success) {
         setAlert({ show: true, message: "Arsip Berhasil Disimpan!", type: "simpan" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
+        
+        // Reset Everything
         setForm(initialForm); 
         setPreview(null); 
         setEnhanced(null); 
@@ -183,16 +186,13 @@ export default function FormArsip() {
             <button
               type="button"
               className="w-9 h-9 flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white rounded-xl transition shadow-sm border border-slate-200/50"
-              title="Informasi Sistem"
             >
               <i className="bi bi-lightbulb text-lg text-yellow-500 group-hover:text-yellow-300"></i>
             </button>
 
             <div className="absolute right-0 top-11 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-5 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[60] leading-relaxed">
-              <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Keamanan Data Temporer</p>
-              Foto dokumen bersifat temporer. Jika dalam <span className="font-bold text-red-500">5 menit</span> data tidak disimpan, foto akan dihapus otomatis dari memori server untuk menjaga keamanan arsip.
-              <br /><br />
-              Pengguna tetap diwajibkan melakukan pemeriksaan ulang terhadap seluruh data hasil OCR sebelum menyimpan arsip.
+              <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Keamanan Data Cloudinary</p>
+              Foto disimpan di Cloud secara temporer. Jika dalam <span className="font-bold text-red-500">3 menit</span> data tidak disimpan, foto akan dihapus otomatis dari Cloudinary untuk menjaga privasi.
             </div>
           </div>
 
@@ -203,6 +203,7 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* KOLOM KIRI (Scanner & Preview) */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
@@ -219,7 +220,7 @@ export default function FormArsip() {
                   {timeLeft !== null && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
                       <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                      FOTO EXPIRED DALAM: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
+                      AUTO DELETE: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
                     </div>
                   )}
                 </div>
@@ -229,13 +230,14 @@ export default function FormArsip() {
                   onClick={handleExpire}
                   className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-600 uppercase tracking-widest transition-all duration-300 rounded-xl outline-none"
                 >
-                  × Batalkan & Hapus Permanen
+                  × Batalkan & Hapus Cloudinary
                 </button>
               </div>
             </div>
           )}
         </div>
 
+        {/* KOLOM KANAN (Form) */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
@@ -253,16 +255,12 @@ export default function FormArsip() {
                 <Input label="Tingkat Perkembangan" name="tingkat_pengembangan" value={form.tingkat_pengembangan} onChange={handleChange} error={errors.tingkat_pengembangan} />
               </div>
               <Input label="Unit Pencipta" name="unit_pencipta" value={form.unit_pencipta} onChange={handleChange} error={errors.unit_pencipta} />
-              <Textarea label="Uraian Informasi" name="keperluan" value={form.keperluan} onChange={handleChange} error={errors.keperluan} />
+              <Textarea label="Uraian Informasi (Keperluan)" name="keperluan" value={form.keperluan} onChange={handleChange} error={errors.keperluan} />
               <Input label="Dokumen Terlampir" name="terlampir" value={form.terlampir} onChange={handleChange} error={errors.terlampir} />
               <Input label="Nominal (Rp)" name="nominal" value={form.nominal} onChange={handleChange} error={errors.nominal} />
             </div>
 
             <div className="space-y-5 pt-4 border-t border-slate-50">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-4 bg-slate-300 rounded-full"></div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Penyimpanan & Kondisi</span>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Input label="No Box Sementara" name="no_box_sementara" value={form.no_box_sementara} onChange={handleChange} error={errors.no_box_sementara} />
                 <Input label="No Box Permanen" name="no_box_permanen" value={form.no_box_permanen} onChange={handleChange} error={errors.no_box_permanen} />
@@ -271,17 +269,11 @@ export default function FormArsip() {
             </div>
 
             <div className="space-y-5 pt-4 border-t border-slate-50">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-4 bg-slate-300 rounded-full"></div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Ketentuan JRA</span>
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <Input label="JRA Aktif" name="jra_aktif" type="number" value={form.jra_aktif} onChange={handleChange} error={errors.jra_aktif} />
                 <Input label="JRA Inaktif" name="jra_inaktif" type="number" value={form.jra_inaktif} onChange={handleChange} error={errors.jra_inaktif} />
-                <Input label="Nasib Akhir" name="nasib_akhir" value={form.nasib_akhir} onChange={handleChange} error={errors.nasib_akhir} />
-                <Input label="Rekomendasi" name="rekomendasi" value={form.rekomendasi} onChange={handleChange} error={errors.rekomendasi} />
               </div>
-              <Input label="Keterangan" name="keterangan" value={form.keterangan} onChange={handleChange} error={errors.keterangan} />
+              <Input label="Nasib Akhir" name="nasib_akhir" value={form.nasib_akhir} onChange={handleChange} error={errors.nasib_akhir} />
             </div>
 
             <button
@@ -298,7 +290,7 @@ export default function FormArsip() {
   );
 }
 
-// --- RENDER HELPERS ---
+// --- RENDER HELPERS (Sama seperti sebelumnya) ---
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
