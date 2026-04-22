@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css'; // CSS WAJIB UNTUK CROPPER
+import 'react-image-crop/dist/ReactCrop.css'; 
 import DocumentScanner from "../components/DocumentScanner";
 import api from "../services/api";
 import Alert from "../components/Alert";
@@ -18,10 +18,10 @@ export default function FormArsip() {
   const timerRef = useRef(null);
   const [ocrDebug, setOcrDebug] = useState(null);
 
-  // --- STATE UNTUK CROP & MODAL ---
+  // --- STATE CROP & MODAL ---
   const [imgSrc, setImgSrc] = useState('');
   const imgRef = useRef(null);
-  const [crop, setCrop] = useState(); // Free roam (undefined aspect)
+  const [crop, setCrop] = useState(); // undefined = Free Roam
   const [completedCrop, setCompletedCrop] = useState();
   const [showModal, setShowModal] = useState(false);
 
@@ -36,6 +36,7 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
+  // --- TIMER AUTO DELETE ---
   useEffect(() => {
     if (timeLeft === 0) handleExpire();
     if (timeLeft === null) return;
@@ -59,39 +60,51 @@ export default function FormArsip() {
     }
   };
 
-  // --- LOGIC KOMPRESI & CROP ---
-  const getCroppedImg = (image, crop) => {
-    const canvas = document.createElement('canvas');
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-    canvas.width = crop.width;
-    canvas.height = crop.height;
-    const ctx = canvas.getContext('2d');
-
-    ctx.drawImage(
-      image,
-      crop.x * scaleX,
-      crop.y * scaleY,
-      crop.width * scaleX,
-      crop.height * scaleY,
-      0,
-      0,
-      crop.width,
-      crop.height
-    );
-
-    // 🔥 KOMPRESI DISINI: Kualitas 0.6 (60%) biar file enteng tapi OCR tetep kebaca
-    return canvas.toDataURL('image/jpeg', 0.6);
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleSelectFile = (image) => {
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: null });
+    }
+  };
+
+  // --- LOGIC CROP & COMPRESS ---
+  const onSelectFile = (image) => {
     setImgSrc(image);
+    setCrop(undefined); // Reset ke free roam setiap buka foto baru
     setShowModal(true);
   };
 
-  const onScanAction = async () => {
+  const executeCropAndUpload = async () => {
     if (completedCrop && imgRef.current) {
-      const base64 = getCroppedImg(imgRef.current, completedCrop);
+      const image = imgRef.current;
+      const canvas = document.createElement('canvas');
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+      
+      canvas.width = completedCrop.width;
+      canvas.height = completedCrop.height;
+      const ctx = canvas.getContext('2d');
+
+      ctx.drawImage(
+        image,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+        0,
+        0,
+        completedCrop.width,
+        completedCrop.height
+      );
+
+      // 🔥 KOMPRESI: Kualitas 0.6 biar file ringan tp OCR tajem
+      const base64 = canvas.toDataURL('image/jpeg', 0.6);
       setShowModal(false);
       handleUpload(base64);
     }
@@ -112,12 +125,12 @@ export default function FormArsip() {
 
       const res = await api.post("/upload-sp2d", formData);
       
-      setOcrDebug({
-        raw: res.data.raw_ocr?.substring(0, 500),
-        parsed: res.data
-      });
-      
       if (res.data.success) {
+        setOcrDebug({
+          raw: res.data.raw_ocr?.substring(0, 500),
+          parsed: res.data
+        });
+
         setForm(prev => ({
           ...prev,
           kode_klas: res.data.kode_klas || prev.kode_klas,
@@ -131,8 +144,6 @@ export default function FormArsip() {
         setEnhanced(res.data.file_dokumen);
         setAlert({ show: true, message: "OCR Berhasil!", type: "update" });
         setTimeLeft(180);
-      } else {
-        throw new Error(res.data.error || "Upload gagal");
       }
     } catch (error) {
       setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
@@ -158,12 +169,6 @@ export default function FormArsip() {
     } finally { setIsSaving(false); }
   };
 
-  const formatTimeDisplay = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500 mt-6 font-sans text-slate-700 pb-20">
       
@@ -172,9 +177,12 @@ export default function FormArsip() {
       {/* --- MODAL CROPPER (ADAPTIVE SIZE) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col max-w-full max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="font-bold text-slate-800">Crop Dokumen SP2D</h3>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col max-w-fit max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b flex justify-between items-center gap-10">
+              <div className="text-left">
+                <h3 className="font-bold text-slate-800">Potong Dokumen</h3>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Tarik area yang ingin di-scan</p>
+              </div>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 transition-colors text-2xl">×</button>
             </div>
             
@@ -188,14 +196,14 @@ export default function FormArsip() {
                   ref={imgRef} 
                   src={imgSrc} 
                   alt="Source" 
-                  className="max-h-[60vh] object-contain"
+                  className="max-h-[60vh] w-auto object-contain"
                 />
               </ReactCrop>
             </div>
 
             <div className="p-6 bg-white border-t flex gap-3">
               <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-all">Batal</button>
-              <button onClick={onScanAction} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">Potong & Scan Sekarang</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">Potong & Scan Sekarang</button>
             </div>
           </div>
         </div>
@@ -207,9 +215,7 @@ export default function FormArsip() {
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
           <p className="text-xs text-slate-400 font-medium mt-1">Gunakan pemindaian otomatis untuk efisiensi input data</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold transition-all h-9 border border-slate-200/50">Kembali</button>
-        </div>
+        <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold transition-all h-9 border border-slate-200/50">Kembali</button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -217,36 +223,43 @@ export default function FormArsip() {
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
-              <DocumentScanner onCrop={handleSelectFile} />
+              <DocumentScanner onCrop={onSelectFile} />
             </div>
           </div>
 
           {(preview || enhanced) && (
             <div className="sticky top-6">
               <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm p-2">
-                <div className="relative rounded-[1.8rem] overflow-hidden">
+                <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
                   {loading && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold animate-bounce">OCR RUNNING...</div>
+                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold animate-pulse">MEMPROSES OCR...</div>
                     </div>
                   )}
                   {timeLeft !== null && !loading && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
                       <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                      AUTO DELETE: <span className="font-black text-red-400">{formatTimeDisplay(timeLeft)}</span>
+                      AUTO DELETE: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
                     </div>
                   )}
                 </div>
-                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl">× Batalkan & Hapus Cloudinary</button>
+                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl">× Batalkan & Hapus</button>
               </div>
+            </div>
+          )}
+          
+          {ocrDebug && (
+            <div className="bg-slate-900 text-white p-6 rounded-[2rem] text-[10px] font-mono shadow-xl opacity-80 overflow-hidden">
+              <p className="text-indigo-400 font-bold mb-2 uppercase tracking-widest">Debug OCR Result</p>
+              <p className="whitespace-pre-wrap">{ocrDebug.raw}</p>
             </div>
           )}
         </div>
 
         {/* KOLOM KANAN */}
-        <div className="lg:col-span-7 text-left">
-          <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 relative">
+        <div className="lg:col-span-7">
+          <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-4 bg-indigo-600 rounded-full"></div>
@@ -258,7 +271,7 @@ export default function FormArsip() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Input label="Tahun" name="tahun" value={form.tahun} onChange={handleChange} error={errors.tahun} />
-                <Input label="Jumlah" name="jumlah" value={form.jumlah} onChange={handleChange} error={errors.jumlah} />
+                <Input label="Jumlah" name="jumlah" value={form.jumlah} onChange={handleChange} />
                 <Input label="Tingkat Perkembangan" name="tingkat_pengembangan" value={form.tingkat_pengembangan} onChange={handleChange} />
               </div>
               <Input label="Unit Pencipta" name="unit_pencipta" value={form.unit_pencipta} onChange={handleChange} error={errors.unit_pencipta} />
@@ -297,15 +310,15 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components
+// Reusable Components (Tetap Lengkap)
 const Input = ({ label, value, error, ...props }) => (
-  <div className="flex flex-col gap-1.5">
+  <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <input
       value={value ?? ""}
       {...props}
       className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all ${
-        error ? 'border-red-400' : 'border-slate-100'
+        error ? 'border-red-400 bg-red-50/30' : 'border-slate-100 focus:ring-1 focus:ring-indigo-50'
       }`}
     />
     {error && <span className="text-[9px] text-red-500 font-bold ml-1">{error[0]}</span>}
@@ -313,7 +326,7 @@ const Input = ({ label, value, error, ...props }) => (
 );
 
 const Select = ({ label, options, value, ...props }) => (
-  <div className="flex flex-col gap-1.5">
+  <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <select
       value={value ?? ""}
@@ -326,7 +339,7 @@ const Select = ({ label, options, value, ...props }) => (
 );
 
 const Textarea = ({ label, value, error, ...props }) => (
-  <div className="flex flex-col gap-1.5">
+  <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <textarea
       value={value ?? ""}
