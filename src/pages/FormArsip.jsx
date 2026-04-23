@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactCrop from 'react-image-crop';
+import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css'; 
 import DocumentScanner from "../components/DocumentScanner";
 import api from "../services/api";
@@ -48,14 +48,15 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE UNTUK CROP WARNA INDIGO ---
+  // --- 🔥 STYLE UNTUK CROP WARNA BIRU (LEBIH KONTRAS) ---
   const customCropStyles = `
-    .ReactCrop__selection-border { border: 2px solid #4f46e5 !important; }
+    .ReactCrop__selection-border { border: 2px solid #2563eb !important; }
     .ReactCrop__drag-handle::after { 
-        background-color: #4f46e5 !important; 
+        background-color: #2563eb !important; 
         border: 1px solid white !important;
         width: 10px !important;
         height: 10px !important;
+        border-radius: 2px !important;
     }
   `;
 
@@ -116,16 +117,22 @@ export default function FormArsip() {
     setShowModal(true);
   };
 
+  // 🔥 FIX: OTOMATIS IKUTIN RASIO FOTO (VERTIKAL/HORIZONTAL) TANPA SCROLL
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
-    // Set krop awal langsung seukuran foto (100%)
-    setCrop({
-      unit: '%',
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100
-    });
+    
+    // Set krop awal proporsional (80% size) ngikutin rasio gambar asli
+    const initialCrop = centerCrop(
+      makeAspectCrop(
+        { unit: '%', width: 80 }, 
+        width / height, 
+        width, 
+        height
+      ),
+      width,
+      height
+    );
+    setCrop(initialCrop);
   };
 
   const executeCropAndUpload = async () => {
@@ -245,36 +252,41 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (CENTERED & COMPACT) --- */}
+      {/* --- MODAL CROP (COMPACT, CENTERED & NO-SCROLL) --- */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95">
-            <div className="p-5 border-b flex justify-between items-center bg-white">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Sesuaikan Area Dokumen</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl">×</button>
+        <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-10">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh]">
+            <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
+              <div className="text-left">
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none">Potong Dokumen</h3>
+                <p className="text-[9px] text-slate-400 font-medium mt-1 uppercase">Fit to screen • Pro Aspect</p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
             </div>
             
-            <div className="p-4 bg-slate-100 flex justify-center overflow-hidden">
-              <div className="max-h-[50vh] overflow-auto rounded-xl">
+            {/* Area Gambar yang tidak butuh scroll */}
+            <div className="flex-1 bg-slate-50 flex justify-center items-center overflow-hidden p-4">
+              <div className="relative w-full h-full flex justify-center items-center">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
                   onComplete={(c) => setCompletedCrop(c)}
+                  className="max-h-full"
                 >
                   <img 
                     ref={imgRef} 
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full h-auto block"
+                    className="max-w-full max-h-[60vh] md:max-h-[55vh] object-contain block rounded-lg"
                   />
                 </ReactCrop>
               </div>
             </div>
 
-            <div className="p-5 bg-white border-t flex gap-3">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-xs font-bold text-slate-400">BATAL</button>
-              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">POTONG & SCAN</button>
+            <div className="p-5 bg-white border-t flex gap-3 flex-shrink-0">
+              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-all uppercase">Batal</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-[10px] font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase">Konfirmasi & Scan</button>
             </div>
           </div>
         </div>
@@ -417,7 +429,7 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components (Sesuai Kode Lu)
+// Reusable Components
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
