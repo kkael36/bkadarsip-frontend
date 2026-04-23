@@ -48,7 +48,7 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE CROP: HANDLE BIRU & UKURAN IMUT ---
+  // --- 🔥 STYLE CROP: HANDLE BIRU & GARIS TIPIS RAPI ---
   const customCropStyles = `
     .ReactCrop__selection-border { 
       border: 1px solid #2563eb !important; 
@@ -58,7 +58,7 @@ export default function FormArsip() {
       height: 10px !important;
       background-color: #2563eb !important;
       border: 1px solid white !important;
-      border-radius: 3px !important;
+      border-radius: 2px !important;
     }
     .ReactCrop__drag-handle::after {
       display: none !important;
@@ -119,7 +119,7 @@ export default function FormArsip() {
   };
 
   const onImageLoad = (e) => {
-    // 🔥 AUTO CROP FULL 100% DI MODAL MINI
+    // 🔥 AUTO CROP 100% PAS KEBUTUHAN
     setCrop({
       unit: '%',
       x: 0,
@@ -182,7 +182,7 @@ export default function FormArsip() {
           file_dokumen: res.data.file_dokumen
         }));
         setEnhanced(res.data.file_dokumen);
-        setAlert({ show: true, message: "OCR Berhasil! Data diinput otomatis.", type: "update" });
+        setAlert({ show: true, message: "OCR Berhasil!", type: "update" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
         setTimeLeft(180);
       } else {
@@ -225,18 +225,17 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (VERSI BENER-BENER KECIL & NO-SCROLL) --- */}
+      {/* --- MODAL CROP (FIT KE GAMBAR, NO SCROLL) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[1.5rem] shadow-2xl flex flex-col w-full max-w-xs overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b flex justify-between items-center bg-white flex-shrink-0">
-              <h3 className="font-bold text-slate-800 text-[10px] uppercase tracking-widest">Crop Dokumen</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-xl">×</button>
+          <div className="bg-white rounded-[1.5rem] shadow-2xl flex flex-col w-fit max-w-[90vw] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-3 border-b flex justify-between items-center bg-white flex-shrink-0">
+              <h3 className="font-bold text-slate-800 text-[10px] uppercase tracking-wider ml-1">Crop Dokumen</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-xl px-2">×</button>
             </div>
             
-            {/* 🔥 Area Gambar Mungil - Fit satu layar */}
-            <div className="bg-slate-900 flex justify-center items-center p-2 overflow-hidden">
-              <div className="relative w-full max-h-[30vh] flex justify-center items-center overflow-hidden rounded-lg">
+            <div className="bg-slate-900 flex justify-center items-center overflow-hidden">
+              <div className="relative max-h-[60vh] flex justify-center items-center overflow-hidden">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
@@ -247,13 +246,13 @@ export default function FormArsip() {
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full max-h-[30vh] object-contain block mx-auto"
+                    className="max-w-full max-h-[60vh] object-contain block"
                   />
                 </ReactCrop>
               </div>
             </div>
 
-            <div className="p-4 bg-white border-t flex gap-2 flex-shrink-0">
+            <div className="p-3 bg-white border-t flex gap-2 flex-shrink-0">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2 text-[10px] font-bold text-slate-400">BATAL</button>
               <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-2 rounded-xl font-bold text-[10px] shadow-lg active:scale-95 transition-all">SCAN</button>
             </div>
@@ -265,13 +264,12 @@ export default function FormArsip() {
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
         <div className="text-left w-full md:w-auto">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
-          <p className="text-xs text-slate-400 font-medium mt-1">Gunakan pemindaian otomatis untuk efisiensi input data</p>
+          <p className="text-xs text-slate-400 font-medium mt-1">Gunakan pemindaian otomatis untuk efisiensi</p>
         </div>
         <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold h-9 border border-slate-200/50">Kembali</button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* KOLOM KIRI (UTUH) */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
@@ -281,18 +279,17 @@ export default function FormArsip() {
 
           {(preview || enhanced) && (
             <div className="sticky top-6 animate-in fade-in zoom-in-95 duration-300">
-              <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-2">
-                <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
+              <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-2 text-center">
+                <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-950">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
-                  {loading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold animate-pulse">Memproses...</div>}
+                  {loading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold animate-pulse">Memproses OCR...</div>}
                 </div>
-                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase transition-all rounded-xl outline-none">× Hapus Cloudinary</button>
+                <button type="button" onClick={handleExpire} className="w-full mt-2 py-3 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase transition-all rounded-xl outline-none">× Hapus File</button>
               </div>
             </div>
           )}
         </div>
 
-        {/* KOLOM KANAN (UTUH) */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
@@ -316,8 +313,8 @@ export default function FormArsip() {
 
             <div className="space-y-5 pt-4 border-t border-slate-50">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Input label="No Box Smt" name="no_box_sementara" value={form.no_box_sementara} onChange={handleChange} />
-                <Input label="No Box Perm" name="no_box_permanen" value={form.no_box_permanen} onChange={handleChange} />
+                <Input label="Box Sementara" name="no_box_sementara" value={form.no_box_sementara} onChange={handleChange} />
+                <Input label="Box Permanen" name="no_box_permanen" value={form.no_box_permanen} onChange={handleChange} />
                 <Select label="Kondisi" name="kondisi" value={form.kondisi} onChange={handleChange} options={['Baik', 'Rusak', 'Lembab', 'Terbakar']} />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -337,7 +334,7 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components (UTUH)
+// Reusable Components
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
