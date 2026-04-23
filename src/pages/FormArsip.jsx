@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css'; 
 import DocumentScanner from "../components/DocumentScanner";
 import api from "../services/api";
@@ -48,15 +48,20 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE UNTUK CROP WARNA INDIGO (BIRU) & ADAPTIVE HANDLES ---
+  // --- 🔥 STYLE CROP: HANDLE BIRU & UKURAN IMUT ---
   const customCropStyles = `
-    .ReactCrop__selection-border { border: 2px solid #4f46e5 !important; }
-    .ReactCrop__drag-handle::after { 
-        background-color: #4f46e5 !important; 
-        border: 1px solid white !important;
-        width: 10px !important;
-        height: 10px !important;
-        border-radius: 2px !important;
+    .ReactCrop__selection-border { 
+      border: 1px solid #2563eb !important; 
+    }
+    .ReactCrop__drag-handle {
+      width: 10px !important;
+      height: 10px !important;
+      background-color: #2563eb !important;
+      border: 1px solid white !important;
+      border-radius: 3px !important;
+    }
+    .ReactCrop__drag-handle::after {
+      display: none !important;
     }
   `;
 
@@ -75,25 +80,22 @@ export default function FormArsip() {
 
   const handleExpire = async () => {
     const urlToDelete = form.file_dokumen;
-    
     setPreview(null);
     setEnhanced(null);
     setTimeLeft(null);
     setForm(prev => ({ ...prev, file_dokumen: "" }));
-    
     if (timerRef.current) clearInterval(timerRef.current);
-
     if (urlToDelete) {
       try {
         await api.delete("/delete-temp-file", { data: { filename: urlToDelete } });
         setAlert({ 
           show: true, 
-          message: "Sesi habis. Foto di Cloudinary telah dihapus otomatis.", 
+          message: "Sesi habis. Foto dihapus otomatis.", 
           type: "hapus" 
         });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
       } catch (error) {
-        console.error("Gagal menghapus file di Cloudinary:", error);
+        console.error("Gagal menghapus file:", error);
       }
     }
   };
@@ -111,28 +113,20 @@ export default function FormArsip() {
     }
   };
 
-  // --- LOGIC CROP & COMPRESS ---
   const handleSelectFile = (image) => {
     setImgSrc(image);
     setShowModal(true);
   };
 
-  // 🔥 FIX: ADAPTIVE FITTING (PORTRAIT/LANDSCAPE) + MAXIMUM PRESENTATION
   const onImageLoad = (e) => {
-    const { width, height } = e.currentTarget;
-    
-    // Calculate the proportional window to fit the image large while maintaining centering
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        { unit: '%', width: 80 }, 
-        width / height, 
-        width, 
-        height
-      ),
-      width,
-      height
-    );
-    setCrop(initialCrop);
+    // 🔥 AUTO CROP FULL 100% DI MODAL MINI
+    setCrop({
+      unit: '%',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100
+    });
   };
 
   const executeCropAndUpload = async () => {
@@ -155,7 +149,6 @@ export default function FormArsip() {
         0, 0, canvas.width, canvas.height
       );
 
-      // 🔥 COMPRESS: Kualitas 0.6 biar file ringan tp OCR tetep tajem
       const base64 = canvas.toDataURL('image/jpeg', 0.6);
       setShowModal(false);
       handleUpload(base64);
@@ -189,14 +182,15 @@ export default function FormArsip() {
           file_dokumen: res.data.file_dokumen
         }));
         setEnhanced(res.data.file_dokumen);
-        setAlert({ show: true, message: "OCR Berhasil!", type: "update" });
+        setAlert({ show: true, message: "OCR Berhasil! Data diinput otomatis.", type: "update" });
+        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
         setTimeLeft(180);
       } else {
         throw new Error(res.data.error || "Upload gagal");
       }
     } catch (error) {
-      console.error("Upload/OCR Error:", error);
       setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
+      setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
     } finally { 
       setLoading(false);
     }
@@ -210,8 +204,6 @@ export default function FormArsip() {
       const res = await api.post("/arsip", form);
       if (res.data.success) {
         setAlert({ show: true, message: "Arsip Berhasil Disimpan!", type: "simpan" });
-        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
-        setForm(initialForm); setPreview(null); setEnhanced(null); setTimeLeft(null); setOcrDebug(null);
         setTimeout(() => navigate("/arsip"), 2000);
       }
     } catch (error) {
@@ -219,9 +211,9 @@ export default function FormArsip() {
         setErrors(error.response.data.errors);
         setAlert({ show: true, message: "Validasi Gagal.", type: "hapus" });
       } else {
-        console.error("Save error:", error);
-        setAlert({ show: true, message: "Gagal menyimpan ke server.", type: "hapus" });
+        setAlert({ show: true, message: "Gagal menyimpan.", type: "hapus" });
       }
+      setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
     } finally {
       setIsSaving(false);
     }
@@ -233,38 +225,37 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (MAXIMIZED & COMPACT) --- */}
+      {/* --- MODAL CROP (VERSI BENER-BENER KECIL & NO-SCROLL) --- */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none">Sesuaikan Area Dokumen</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
+        <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[1.5rem] shadow-2xl flex flex-col w-full max-w-xs overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b flex justify-between items-center bg-white flex-shrink-0">
+              <h3 className="font-bold text-slate-800 text-[10px] uppercase tracking-widest">Crop Dokumen</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-xl">×</button>
             </div>
             
-            {/* 🔥 Area Gambar: Maximized, Object-Cover within flexible container */}
-            <div className="flex-1 bg-slate-100 flex justify-center items-center overflow-hidden p-2">
-              <div className="relative w-full h-full flex justify-center items-center overflow-hidden rounded-xl">
+            {/* 🔥 Area Gambar Mungil - Fit satu layar */}
+            <div className="bg-slate-900 flex justify-center items-center p-2 overflow-hidden">
+              <div className="relative w-full max-h-[30vh] flex justify-center items-center overflow-hidden rounded-lg">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
                   onComplete={(c) => setCompletedCrop(c)}
-                  className="max-h-full"
                 >
                   <img 
                     ref={imgRef} 
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full max-h-[60vh] object-contain block mx-auto rounded-lg shadow-inner"
+                    className="max-w-full max-h-[30vh] object-contain block mx-auto"
                   />
                 </ReactCrop>
               </div>
             </div>
 
-            <div className="p-5 bg-white border-t flex gap-3 flex-shrink-0">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-all uppercase">Batal</button>
-              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-[10px] font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase leading-none">Potong & Scan Sekarang</button>
+            <div className="p-4 bg-white border-t flex gap-2 flex-shrink-0">
+              <button onClick={() => setShowModal(false)} className="flex-1 py-2 text-[10px] font-bold text-slate-400">BATAL</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-2 rounded-xl font-bold text-[10px] shadow-lg active:scale-95 transition-all">SCAN</button>
             </div>
           </div>
         </div>
@@ -274,15 +265,13 @@ export default function FormArsip() {
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
         <div className="text-left w-full md:w-auto">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
-          <p className="text-xs text-slate-400 font-medium mt-1 leading-none">Gunakan pemindaian otomatis untuk efisiensi input data</p>
+          <p className="text-xs text-slate-400 font-medium mt-1">Gunakan pemindaian otomatis untuk efisiensi input data</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold transition-all h-9 leading-none border border-slate-200/50">Kembali</button>
-        </div>
+        <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold h-9 border border-slate-200/50">Kembali</button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* KOLOM KIRI */}
+        {/* KOLOM KIRI (UTUH) */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
@@ -292,29 +281,24 @@ export default function FormArsip() {
 
           {(preview || enhanced) && (
             <div className="sticky top-6 animate-in fade-in zoom-in-95 duration-300">
-              <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm p-2 text-center">
+              <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-2">
                 <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
-                  {loading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-sm font-bold animate-pulse">Memproses OCR...</div>}
-                  {timeLeft !== null && !loading && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>AUTO DELETE: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
-                    </div>
-                  )}
+                  {loading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold animate-pulse">Memproses...</div>}
                 </div>
-                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl outline-none leading-none">× Batalkan & Hapus Cloudinary</button>
+                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase transition-all rounded-xl outline-none">× Hapus Cloudinary</button>
               </div>
             </div>
           )}
         </div>
 
-        {/* KOLOM KANAN */}
+        {/* KOLOM KANAN (UTUH) */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-4 bg-indigo-600 rounded-full"></div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none">Informasi Utama</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Informasi Utama</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input label="Kode Klas" name="kode_klas" value={form.kode_klas} onChange={handleChange} error={errors.kode_klas} />
@@ -322,32 +306,30 @@ export default function FormArsip() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Input label="Tahun" name="tahun" value={form.tahun} onChange={handleChange} error={errors.tahun} />
-                <Input label="Jumlah" name="jumlah" value={form.jumlah} onChange={handleChange} error={errors.jumlah} />
-                <Input label="Status" name="tingkat_pengembangan" value={form.tingkat_pengembangan} onChange={handleChange} error={errors.tingkat_pengembangan} />
+                <Input label="Jumlah" name="jumlah" value={form.jumlah} onChange={handleChange} />
+                <Input label="Status" name="tingkat_pengembangan" value={form.tingkat_pengembangan} onChange={handleChange} />
               </div>
-              <Input label="Unit Pencipta" name="unit_pencipta" value={form.unit_pencipta} onChange={handleChange} error={errors.unit_pencipta} />
-              <Textarea label="Uraian Informasi (Keperluan)" name="keperluan" value={form.keperluan} onChange={handleChange} error={errors.keperluan} />
-              <Input label="Dokumen Terlampir" name="terlampir" value={form.terlampir} onChange={handleChange} error={errors.terlampir} />
+              <Input label="Unit Pencipta" name="unit_pencipta" value={form.unit_pencipta} onChange={handleChange} />
+              <Textarea label="Keperluan" name="keperluan" value={form.keperluan} onChange={handleChange} error={errors.keperluan} />
               <Input label="Nominal (Rp)" name="nominal" value={form.nominal} onChange={handleChange} error={errors.nominal} />
             </div>
 
             <div className="space-y-5 pt-4 border-t border-slate-50">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Input label="No Box Sementara" name="no_box_sementara" value={form.no_box_sementara} onChange={handleChange} error={errors.no_box_sementara} />
-                <Input label="No Box Permanen" name="no_box_permanen" value={form.no_box_permanen} onChange={handleChange} error={errors.no_box_permanen} />
-                <Select label="Kondisi" name="kondisi" value={form.kondisi} onChange={handleChange} error={errors.kondisi} options={['Baik', 'Rusak', 'Lembab', 'Terbakar']} />
+                <Input label="No Box Smt" name="no_box_sementara" value={form.no_box_sementara} onChange={handleChange} />
+                <Input label="No Box Perm" name="no_box_permanen" value={form.no_box_permanen} onChange={handleChange} />
+                <Select label="Kondisi" name="kondisi" value={form.kondisi} onChange={handleChange} options={['Baik', 'Rusak', 'Lembab', 'Terbakar']} />
               </div>
-            </div>
-
-            <div className="space-y-5 pt-4 border-t border-slate-50">
               <div className="grid grid-cols-2 gap-4">
-                <Input label="JRA Aktif" name="jra_aktif" type="number" value={form.jra_aktif} onChange={handleChange} error={errors.jra_aktif} />
-                <Input label="JRA Inaktif" name="jra_inaktif" type="number" value={form.jra_inaktif} onChange={handleChange} error={errors.jra_inaktif} />
+                <Input label="JRA Aktif" name="jra_aktif" type="number" value={form.jra_aktif} onChange={handleChange} />
+                <Input label="JRA Inaktif" name="jra_inaktif" type="number" value={form.jra_inaktif} onChange={handleChange} />
               </div>
-              <Input label="Nasib Akhir" name="nasib_akhir" value={form.nasib_akhir} onChange={handleChange} error={errors.nasib_akhir} />
+              <Input label="Nasib Akhir" name="nasib_akhir" value={form.nasib_akhir} onChange={handleChange} />
             </div>
 
-            <button type="submit" disabled={isSaving || loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 outline-none leading-none">Simpan Arsip Digital</button>
+            <button type="submit" disabled={isSaving || loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 outline-none">
+              {isSaving ? "Menyimpan..." : "Simpan Arsip Digital"}
+            </button>
           </form>
         </div>
       </div>
@@ -355,19 +337,19 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components (Sesuai Kode Lu)
+// Reusable Components (UTUH)
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
-    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
-    <input value={value ?? ""} {...props} className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all leading-none ${error ? 'border-red-400 focus:ring-1 focus:ring-red-400 bg-red-50/30' : 'border-slate-100 focus:ring-1 focus:ring-indigo-50'}`} />
-    {error && <span className="text-[9px] text-red-500 font-bold ml-1 leading-none">{error[0]}</span>}
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
+    <input value={value ?? ""} {...props} className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all ${error ? 'border-red-400 bg-red-50/30' : 'border-slate-100 focus:ring-1 focus:ring-indigo-50'}`} />
+    {error && <span className="text-[9px] text-red-500 font-bold ml-1">{error[0]}</span>}
   </div>
 );
 
 const Select = ({ label, options, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
-    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
-    <select value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all leading-none">
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
+    <select value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all">
       {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
     </select>
   </div>
@@ -375,7 +357,7 @@ const Select = ({ label, options, value, error, ...props }) => (
 
 const Textarea = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
-    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
-    <textarea value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all min-h-[100px] resize-none leading-none" />
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
+    <textarea value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all min-h-[100px] resize-none" />
   </div>
 );
