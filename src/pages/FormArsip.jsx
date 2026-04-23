@@ -48,18 +48,18 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE CROP: HANDLE GEDE & WARNA BIRU ---
+  // --- 🔥 STYLE CROP: HANDLE GEDE & WARNA BIRU (PURE BLUE) ---
   const customCropStyles = `
     .ReactCrop__selection-border { 
       border: 2px solid #2563eb !important; 
     }
     .ReactCrop__drag-handle {
-      width: 20px !important;
-      height: 20px !important;
+      width: 24px !important;
+      height: 24px !important;
       background-color: #2563eb !important;
       border: 3px solid white !important;
       border-radius: 6px !important;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     }
     .ReactCrop__drag-handle::after {
       display: none !important;
@@ -119,6 +119,7 @@ export default function FormArsip() {
     setShowModal(true);
   };
 
+  // 🔥 INITIAL CROP: FULL 100% TANPA KEPOTONG
   const onImageLoad = (e) => {
     setCrop({
       unit: '%',
@@ -161,7 +162,6 @@ export default function FormArsip() {
     setLoading(true);
     setOcrDebug(null);
     
-    // 1. Notif "Memproses" muncul dan nangkring terus
     setAlert({ show: true, message: "Sistem Sedang Membaca Dokumen...", type: "info" });
 
     try {
@@ -185,7 +185,6 @@ export default function FormArsip() {
         }));
         setEnhanced(res.data.file_dokumen);
         
-        // 2. Timpa dengan notif "Berhasil" dan set timer biar ilang otomatis
         setAlert({ show: true, message: "OCR Berhasil! Data telah diinput otomatis.", type: "update" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
         
@@ -231,28 +230,30 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (CENTERED & NO-SCROLL) --- */}
+      {/* --- MODAL CROP (CENTERED & FULL-VIEW NO SCROLL) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh]">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Sesuaikan Area SP2D</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl">×</button>
             </div>
             
-            <div className="bg-slate-50 flex justify-center items-center overflow-hidden p-2 min-h-[300px]">
-              <div className="relative w-full max-h-[60vh] flex justify-center items-center overflow-auto rounded-xl">
+            {/* 🔥 Area ini gue paksa fit di layar biar handles keliatan semua */}
+            <div className="bg-slate-100 flex-1 flex justify-center items-center overflow-hidden p-4">
+              <div className="relative w-full h-full flex justify-center items-center overflow-hidden rounded-xl">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
                   onComplete={(c) => setCompletedCrop(c)}
+                  className="max-h-full"
                 >
                   <img 
                     ref={imgRef} 
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full max-h-[60vh] object-contain block mx-auto"
+                    className="max-w-full max-h-[60vh] object-contain block mx-auto shadow-lg"
                   />
                 </ReactCrop>
               </div>
@@ -260,7 +261,7 @@ export default function FormArsip() {
 
             <div className="p-5 bg-white border-t flex gap-3 flex-shrink-0">
               <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-all uppercase">Batal</button>
-              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold text-[10px] shadow-lg active:scale-95 transition-all uppercase">Potong & Scan Sekarang</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-[10px] font-bold shadow-lg active:scale-95 transition-all uppercase">Potong & Scan Sekarang</button>
             </div>
           </div>
         </div>
@@ -298,7 +299,7 @@ export default function FormArsip() {
                     </div>
                   )}
                   {timeLeft !== null && !loading && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
                       <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                       AUTO DELETE: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
                     </div>
@@ -360,7 +361,7 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components (UTUH)
+// Reusable Components (UTUH GAK GUE SENTUH)
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
