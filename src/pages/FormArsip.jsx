@@ -54,9 +54,9 @@ export default function FormArsip() {
     .ReactCrop__drag-handle::after { 
         background-color: #2563eb !important; 
         border: 1px solid white !important;
-        width: 10px !important;
-        height: 10px !important;
-        border-radius: 2px !important;
+        width: 12px !important;
+        height: 12px !important;
+        border-radius: 4px !important;
     }
   `;
 
@@ -117,21 +117,19 @@ export default function FormArsip() {
     setShowModal(true);
   };
 
-  // 🔥 FIX: OTOMATIS IKUTIN RASIO FOTO (VERTIKAL/HORIZONTAL) TANPA SCROLL
+  // 🔥 FIX: OTOMATIS IKUTIN RASIO FOTO TAPI BISA GERAK ATAS-BAWAH (Free Roam)
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
     
-    // Set krop awal proporsional (80% size) ngikutin rasio gambar asli
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        { unit: '%', width: 80 }, 
-        width / height, 
-        width, 
-        height
-      ),
-      width,
-      height
-    );
+    // Inisialisasi krop di tengah layar modal
+    // width: 80 (persen), height: 80 (persen)
+    const initialCrop = {
+      unit: '%',
+      x: 10,
+      y: 10,
+      width: 80,
+      height: 80
+    };
     setCrop(initialCrop);
   };
 
@@ -254,31 +252,30 @@ export default function FormArsip() {
 
       {/* --- MODAL CROP (COMPACT, CENTERED & NO-SCROLL) --- */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-10">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh]">
+        <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
               <div className="text-left">
-                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none">Potong Dokumen</h3>
-                <p className="text-[9px] text-slate-400 font-medium mt-1 uppercase">Fit to screen • Pro Aspect</p>
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Potong Dokumen</h3>
               </div>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
             </div>
             
-            {/* Area Gambar yang tidak butuh scroll */}
-            <div className="flex-1 bg-slate-50 flex justify-center items-center overflow-hidden p-4">
-              <div className="relative w-full h-full flex justify-center items-center">
+            {/* Area Gambar - Dibuat agar fit tanpa scroll */}
+            <div className="flex-1 bg-slate-50 flex justify-center items-center overflow-hidden p-2">
+              <div className="relative w-full max-h-full flex justify-center items-center overflow-auto rounded-xl">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
                   onComplete={(c) => setCompletedCrop(c)}
-                  className="max-h-full"
+                  // 🔥 ASPEK DIHAPUS BIAR BISA BEBAS ATAS BAWAH KANAN KIRI
                 >
                   <img 
                     ref={imgRef} 
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full max-h-[60vh] md:max-h-[55vh] object-contain block rounded-lg"
+                    className="max-w-full max-h-[55vh] object-contain block mx-auto"
                   />
                 </ReactCrop>
               </div>
@@ -360,7 +357,7 @@ export default function FormArsip() {
             </div>
           )}
           
-          {/* Debug Panel - tampilkan hanya di development */}
+          {/* Debug Panel */}
           {ocrDebug && process.env.NODE_ENV === 'development' && (
             <div className="bg-gray-900 text-white p-4 rounded-xl text-xs font-mono text-left">
               <details>
