@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css'; 
 import DocumentScanner from "../components/DocumentScanner";
 import api from "../services/api";
@@ -48,7 +48,7 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE UNTUK CROP WARNA INDIGO (BIRU) ---
+  // --- 🔥 STYLE UNTUK CROP WARNA INDIGO ---
   const customCropStyles = `
     .ReactCrop__selection-border { border: 2px solid #4f46e5 !important; }
     .ReactCrop__drag-handle::after { 
@@ -56,7 +56,6 @@ export default function FormArsip() {
         border: 1px solid white !important;
         width: 10px !important;
         height: 10px !important;
-        border-radius: 2px !important;
     }
   `;
 
@@ -117,22 +116,16 @@ export default function FormArsip() {
     setShowModal(true);
   };
 
-  // 🔥 FIX: OTOMATIS IKUTIN RASIO FOTO (VERTIKAL/HORIZONTAL)
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
-    
-    // Hitung krop awal biar nyesuain rasio asli gambar (80% cover)
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        { unit: '%', width: 80 }, 
-        width / height, 
-        width, 
-        height
-      ),
-      width,
-      height
-    );
-    setCrop(initialCrop);
+    // Set krop awal langsung seukuran foto (100%)
+    setCrop({
+      unit: '%',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100
+    });
   };
 
   const executeCropAndUpload = async () => {
@@ -152,7 +145,10 @@ export default function FormArsip() {
         completedCrop.y * scaleY,
         completedCrop.width * scaleX,
         completedCrop.height * scaleY,
-        0, 0, canvas.width, canvas.height
+        0,
+        0,
+        canvas.width,
+        canvas.height
       );
 
       // 🔥 COMPRESS: Kualitas 0.6 biar file ringan tp OCR tetep tajem
@@ -249,20 +245,17 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (CENTERED, COMPACT & RESPONSIVE) --- */}
+      {/* --- MODAL CROP (CENTERED & COMPACT) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95">
             <div className="p-5 border-b flex justify-between items-center bg-white">
-              <div className="text-left">
-                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none">Potong Dokumen</h3>
-                <p className="text-[9px] text-slate-400 font-medium mt-1">SESUAIKAN DENGAN AREA SP2D</p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Sesuaikan Area Dokumen</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl">×</button>
             </div>
             
-            <div className="p-4 bg-slate-50 flex justify-center items-center overflow-hidden min-h-[300px]">
-              <div className="max-h-[50vh] w-full overflow-auto rounded-xl flex justify-center">
+            <div className="p-4 bg-slate-100 flex justify-center overflow-hidden">
+              <div className="max-h-[50vh] overflow-auto rounded-xl">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
@@ -280,8 +273,8 @@ export default function FormArsip() {
             </div>
 
             <div className="p-5 bg-white border-t flex gap-3">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-all uppercase">Batal</button>
-              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-[10px] font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase">Potong & Scan Sekarang</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-xs font-bold text-slate-400">BATAL</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">POTONG & SCAN</button>
             </div>
           </div>
         </div>
@@ -327,12 +320,12 @@ export default function FormArsip() {
           {(preview || enhanced) && (
             <div className="sticky top-6 animate-in fade-in zoom-in-95 duration-300">
               <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm p-2">
-                <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
+                <div className="relative rounded-[1.8rem] overflow-hidden">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
                   
                   {loading && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold animate-pulse">Memproses OCR...</div>
+                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold">Memproses OCR...</div>
                     </div>
                   )}
                   
@@ -361,10 +354,10 @@ export default function FormArsip() {
               <details>
                 <summary className="cursor-pointer font-bold mb-2">Debug OCR</summary>
                 <div className="mt-2">
-                  <p className="text-yellow-400 font-bold mb-1">Parsed Data:</p>
-                  <pre className="bg-black/30 p-2 rounded">{JSON.stringify(ocrDebug.parsed, null, 2)}</pre>
-                  <p className="text-yellow-400 font-bold mt-2 mb-1">Raw OCR Text:</p>
-                  <pre className="whitespace-pre-wrap bg-black/30 p-2 rounded">{ocrDebug.raw}</pre>
+                  <p className="text-yellow-400">Parsed Data:</p>
+                  <pre>{JSON.stringify(ocrDebug.parsed, null, 2)}</pre>
+                  <p className="text-yellow-400 mt-2">Raw OCR Text:</p>
+                  <pre className="whitespace-pre-wrap">{ocrDebug.raw}</pre>
                 </div>
               </details>
             </div>
@@ -424,7 +417,7 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components (UTUH GAK GUE UBAH)
+// Reusable Components (Sesuai Kode Lu)
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
