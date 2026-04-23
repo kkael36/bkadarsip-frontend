@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css'; 
 import DocumentScanner from "../components/DocumentScanner";
 import api from "../services/api";
@@ -48,17 +48,18 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE UNTUK CROP WARNA BIRU TERANG ---
+  // --- 🔥 STYLE CROP: HANDLE GEDE & WARNA BIRU ---
   const customCropStyles = `
     .ReactCrop__selection-border { 
       border: 2px solid #2563eb !important; 
     }
     .ReactCrop__drag-handle {
-      width: 14px !important;
-      height: 14px !important;
+      width: 20px !important;
+      height: 20px !important;
       background-color: #2563eb !important;
-      border: 2px solid white !important;
-      border-radius: 4px !important;
+      border: 3px solid white !important;
+      border-radius: 6px !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     }
     .ReactCrop__drag-handle::after {
       display: none !important;
@@ -95,7 +96,7 @@ export default function FormArsip() {
         });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
       } catch (error) {
-        console.error("Gagal menghapus file di Cloudinary:", error);
+        console.error("Gagal menghapus file:", error);
       }
     }
   };
@@ -118,15 +119,13 @@ export default function FormArsip() {
     setShowModal(true);
   };
 
-  // 🔥 INITIAL CROP: Biar handles tetep di dalem area pandang
   const onImageLoad = (e) => {
-    const { width, height } = e.currentTarget;
     setCrop({
       unit: '%',
-      x: 5,
-      y: 5,
-      width: 90,
-      height: 90
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100
     });
   };
 
@@ -161,6 +160,8 @@ export default function FormArsip() {
     setEnhanced(null); 
     setLoading(true);
     setOcrDebug(null);
+    
+    // 1. Notif "Memproses" muncul dan nangkring terus
     setAlert({ show: true, message: "Sistem Sedang Membaca Dokumen...", type: "info" });
 
     try {
@@ -170,10 +171,7 @@ export default function FormArsip() {
       formData.append("file", file);
 
       const res = await api.post("/upload-sp2d", formData);
-      setOcrDebug({
-        raw: res.data.raw_ocr?.substring(0, 500),
-        parsed: res.data
-      });
+      setOcrDebug({ raw: res.data.raw_ocr?.substring(0, 500), parsed: res.data });
       
       if (res.data.success) {
         setForm(prev => ({
@@ -186,13 +184,18 @@ export default function FormArsip() {
           file_dokumen: res.data.file_dokumen
         }));
         setEnhanced(res.data.file_dokumen);
-        setAlert({ show: true, message: "OCR Berhasil!", type: "update" });
+        
+        // 2. Timpa dengan notif "Berhasil" dan set timer biar ilang otomatis
+        setAlert({ show: true, message: "OCR Berhasil! Data telah diinput otomatis.", type: "update" });
+        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
+        
         setTimeLeft(180);
       } else {
         throw new Error(res.data.error || "Upload gagal");
       }
     } catch (error) {
       setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
+      setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
     } finally { 
       setLoading(false);
     }
@@ -206,6 +209,7 @@ export default function FormArsip() {
       const res = await api.post("/arsip", form);
       if (res.data.success) {
         setAlert({ show: true, message: "Arsip Berhasil Disimpan!", type: "simpan" });
+        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
         setTimeout(() => navigate("/arsip"), 2000);
       }
     } catch (error) {
@@ -213,8 +217,9 @@ export default function FormArsip() {
         setErrors(error.response.data.errors);
         setAlert({ show: true, message: "Validasi Gagal.", type: "hapus" });
       } else {
-        setAlert({ show: true, message: "Gagal menyimpan ke server.", type: "hapus" });
+        setAlert({ show: true, message: "Gagal menyimpan.", type: "hapus" });
       }
+      setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
     } finally {
       setIsSaving(false);
     }
@@ -226,18 +231,17 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (FIXED VIEWPORT & BLUE HANDLES) --- */}
+      {/* --- MODAL CROP (CENTERED & NO-SCROLL) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Atur Area Potong</h3>
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Sesuaikan Area SP2D</h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
             </div>
             
-            {/* 🔥 Area ini dibatasi biar gak perlu scroll layar */}
             <div className="bg-slate-50 flex justify-center items-center overflow-hidden p-2 min-h-[300px]">
-              <div className="relative w-full max-h-[50vh] flex justify-center overflow-auto rounded-xl">
+              <div className="relative w-full max-h-[60vh] flex justify-center items-center overflow-auto rounded-xl">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
@@ -248,14 +252,14 @@ export default function FormArsip() {
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full max-h-[50vh] object-contain block mx-auto"
+                    className="max-w-full max-h-[60vh] object-contain block mx-auto"
                   />
                 </ReactCrop>
               </div>
             </div>
 
             <div className="p-5 bg-white border-t flex gap-3 flex-shrink-0">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase">Batal</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-all uppercase">Batal</button>
               <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold text-[10px] shadow-lg active:scale-95 transition-all uppercase">Potong & Scan Sekarang</button>
             </div>
           </div>
@@ -276,7 +280,6 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* KOLOM KIRI */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
@@ -302,14 +305,13 @@ export default function FormArsip() {
                   )}
                 </div>
                 <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl outline-none">
-                  × Batalkan & Hapus Cloudinary
+                  × Batalkan & Hapus 
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* KOLOM KANAN (PASTI KOMPLIT GAK ADA YANG ILANG) */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
@@ -349,7 +351,7 @@ export default function FormArsip() {
             </div>
 
             <button type="submit" disabled={isSaving || loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 outline-none">
-              {isSaving ? "Menyimpan ke Sistem..." : "Simpan Arsip Digital"}
+              {isSaving ? "Menyimpan ke Sistem..." : loading ? "Memproses OCR..." : "Simpan Arsip Digital"}
             </button>
           </form>
         </div>
