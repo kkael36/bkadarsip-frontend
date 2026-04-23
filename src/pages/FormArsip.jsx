@@ -48,15 +48,20 @@ export default function FormArsip() {
 
   const [form, setForm] = useState(initialForm);
 
-  // --- 🔥 STYLE UNTUK CROP WARNA BIRU (LEBIH KONTRAS) ---
+  // --- 🔥 STYLE UNTUK CROP WARNA BIRU TERANG ---
   const customCropStyles = `
-    .ReactCrop__selection-border { border: 2px solid #2563eb !important; }
-    .ReactCrop__drag-handle::after { 
-        background-color: #2563eb !important; 
-        border: 1px solid white !important;
-        width: 12px !important;
-        height: 12px !important;
-        border-radius: 4px !important;
+    .ReactCrop__selection-border { 
+      border: 2px solid #2563eb !important; 
+    }
+    .ReactCrop__drag-handle {
+      width: 14px !important;
+      height: 14px !important;
+      background-color: #2563eb !important;
+      border: 2px solid white !important;
+      border-radius: 4px !important;
+    }
+    .ReactCrop__drag-handle::after {
+      display: none !important;
     }
   `;
 
@@ -75,14 +80,11 @@ export default function FormArsip() {
 
   const handleExpire = async () => {
     const urlToDelete = form.file_dokumen;
-    
     setPreview(null);
     setEnhanced(null);
     setTimeLeft(null);
     setForm(prev => ({ ...prev, file_dokumen: "" }));
-    
     if (timerRef.current) clearInterval(timerRef.current);
-
     if (urlToDelete) {
       try {
         await api.delete("/delete-temp-file", { data: { filename: urlToDelete } });
@@ -111,26 +113,21 @@ export default function FormArsip() {
     }
   };
 
-  // --- LOGIC CROP & COMPRESS ---
   const handleSelectFile = (image) => {
     setImgSrc(image);
     setShowModal(true);
   };
 
-  // 🔥 FIX: OTOMATIS IKUTIN RASIO FOTO TAPI BISA GERAK ATAS-BAWAH (Free Roam)
+  // 🔥 INITIAL CROP: Biar handles tetep di dalem area pandang
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
-    
-    // Inisialisasi krop di tengah layar modal
-    // width: 80 (persen), height: 80 (persen)
-    const initialCrop = {
+    setCrop({
       unit: '%',
-      x: 10,
-      y: 10,
-      width: 80,
-      height: 80
-    };
-    setCrop(initialCrop);
+      x: 5,
+      y: 5,
+      width: 90,
+      height: 90
+    });
   };
 
   const executeCropAndUpload = async () => {
@@ -150,13 +147,9 @@ export default function FormArsip() {
         completedCrop.y * scaleY,
         completedCrop.width * scaleX,
         completedCrop.height * scaleY,
-        0,
-        0,
-        canvas.width,
-        canvas.height
+        0, 0, canvas.width, canvas.height
       );
 
-      // 🔥 COMPRESS: Kualitas 0.6 biar file ringan tp OCR tetep tajem
       const base64 = canvas.toDataURL('image/jpeg', 0.6);
       setShowModal(false);
       handleUpload(base64);
@@ -177,7 +170,6 @@ export default function FormArsip() {
       formData.append("file", file);
 
       const res = await api.post("/upload-sp2d", formData);
-      
       setOcrDebug({
         raw: res.data.raw_ocr?.substring(0, 500),
         parsed: res.data
@@ -193,7 +185,6 @@ export default function FormArsip() {
           keperluan: res.data.keperluan || prev.keperluan,
           file_dokumen: res.data.file_dokumen
         }));
-
         setEnhanced(res.data.file_dokumen);
         setAlert({ show: true, message: "OCR Berhasil!", type: "update" });
         setTimeLeft(180);
@@ -201,12 +192,7 @@ export default function FormArsip() {
         throw new Error(res.data.error || "Upload gagal");
       }
     } catch (error) {
-      console.error("Upload/OCR Error:", error);
-      setAlert({ 
-        show: true, 
-        message: "Gagal memproses dokumen.", 
-        type: "hapus" 
-      });
+      setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
     } finally { 
       setLoading(false);
     }
@@ -216,27 +202,17 @@ export default function FormArsip() {
     e.preventDefault();
     setIsSaving(true);
     setErrors({}); 
-
     try {
       const res = await api.post("/arsip", form);
       if (res.data.success) {
         setAlert({ show: true, message: "Arsip Berhasil Disimpan!", type: "simpan" });
-        setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
-        
-        setForm(initialForm); 
-        setPreview(null); 
-        setEnhanced(null); 
-        setTimeLeft(null);
-        setOcrDebug(null);
-        
         setTimeout(() => navigate("/arsip"), 2000);
       }
     } catch (error) {
       if (error.response?.status === 422) {
         setErrors(error.response.data.errors);
-        setAlert({ show: true, message: "Validasi Gagal. Periksa kembali data.", type: "hapus" });
+        setAlert({ show: true, message: "Validasi Gagal.", type: "hapus" });
       } else {
-        console.error("Save error:", error);
         setAlert({ show: true, message: "Gagal menyimpan ke server.", type: "hapus" });
       }
     } finally {
@@ -250,40 +226,37 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (COMPACT, CENTERED & NO-SCROLL) --- */}
+      {/* --- MODAL CROP (FIXED VIEWPORT & BLUE HANDLES) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl flex flex-col w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+          <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
-              <div className="text-left">
-                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Potong Dokumen</h3>
-              </div>
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Atur Area Potong</h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl transition-colors">×</button>
             </div>
             
-            {/* Area Gambar - Dibuat agar fit tanpa scroll */}
-            <div className="flex-1 bg-slate-50 flex justify-center items-center overflow-hidden p-2">
-              <div className="relative w-full max-h-full flex justify-center items-center overflow-auto rounded-xl">
+            {/* 🔥 Area ini dibatasi biar gak perlu scroll layar */}
+            <div className="bg-slate-50 flex justify-center items-center overflow-hidden p-2 min-h-[300px]">
+              <div className="relative w-full max-h-[50vh] flex justify-center overflow-auto rounded-xl">
                 <ReactCrop 
                   crop={crop} 
                   onChange={(c) => setCrop(c)} 
                   onComplete={(c) => setCompletedCrop(c)}
-                  // 🔥 ASPEK DIHAPUS BIAR BISA BEBAS ATAS BAWAH KANAN KIRI
                 >
                   <img 
                     ref={imgRef} 
                     src={imgSrc} 
                     alt="Source" 
                     onLoad={onImageLoad}
-                    className="max-w-full max-h-[55vh] object-contain block mx-auto"
+                    className="max-w-full max-h-[50vh] object-contain block mx-auto"
                   />
                 </ReactCrop>
               </div>
             </div>
 
             <div className="p-5 bg-white border-t flex gap-3 flex-shrink-0">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-all uppercase">Batal</button>
-              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl text-[10px] font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase">Konfirmasi & Scan</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase">Batal</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold text-[10px] shadow-lg active:scale-95 transition-all uppercase">Potong & Scan Sekarang</button>
             </div>
           </div>
         </div>
@@ -295,23 +268,8 @@ export default function FormArsip() {
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
           <p className="text-xs text-slate-400 font-medium mt-1">Gunakan pemindaian otomatis untuk efisiensi input data</p>
         </div>
-
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <div className="relative group">
-            <button
-              type="button"
-              className="w-9 h-9 flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white rounded-xl transition shadow-sm border border-slate-200/50"
-            >
-              <i className="bi bi-lightbulb text-lg text-yellow-500 group-hover:text-yellow-300"></i>
-            </button>
-
-            <div className="absolute right-0 top-11 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-5 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[60] leading-relaxed text-left">
-              <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Keamanan Data Cloudinary</p>
-              Foto disimpan di Cloud secara temporer. Jika dalam <span className="font-bold text-red-500">3 menit</span> data tidak disimpan, foto akan dihapus otomatis dari Cloudinary untuk menjaga privasi.
-            </div>
-          </div>
-
-          <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold transition-all h-9 shadow-sm border border-slate-200/50">
+          <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold h-9 border border-slate-200/50 transition-all">
             Kembali
           </button>
         </div>
@@ -329,15 +287,13 @@ export default function FormArsip() {
           {(preview || enhanced) && (
             <div className="sticky top-6 animate-in fade-in zoom-in-95 duration-300">
               <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm p-2">
-                <div className="relative rounded-[1.8rem] overflow-hidden">
+                <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
-                  
                   {loading && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold">Memproses OCR...</div>
+                      <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold animate-pulse">Memproses OCR...</div>
                     </div>
                   )}
-                  
                   {timeLeft !== null && !loading && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
                       <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -345,35 +301,15 @@ export default function FormArsip() {
                     </div>
                   )}
                 </div>
-                
-                <button
-                  type="button"
-                  onClick={handleExpire}
-                  className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-600 uppercase tracking-widest transition-all duration-300 rounded-xl outline-none"
-                >
+                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl outline-none">
                   × Batalkan & Hapus Cloudinary
                 </button>
               </div>
             </div>
           )}
-          
-          {/* Debug Panel */}
-          {ocrDebug && process.env.NODE_ENV === 'development' && (
-            <div className="bg-gray-900 text-white p-4 rounded-xl text-xs font-mono text-left">
-              <details>
-                <summary className="cursor-pointer font-bold mb-2">Debug OCR</summary>
-                <div className="mt-2">
-                  <p className="text-yellow-400">Parsed Data:</p>
-                  <pre>{JSON.stringify(ocrDebug.parsed, null, 2)}</pre>
-                  <p className="text-yellow-400 mt-2">Raw OCR Text:</p>
-                  <pre className="whitespace-pre-wrap">{ocrDebug.raw}</pre>
-                </div>
-              </details>
-            </div>
-          )}
         </div>
 
-        {/* KOLOM KANAN */}
+        {/* KOLOM KANAN (PASTI KOMPLIT GAK ADA YANG ILANG) */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
@@ -412,12 +348,8 @@ export default function FormArsip() {
               <Input label="Nasib Akhir" name="nasib_akhir" value={form.nasib_akhir} onChange={handleChange} error={errors.nasib_akhir} />
             </div>
 
-            <button
-              type="submit"
-              disabled={isSaving || loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 outline-none"
-            >
-              {isSaving ? "Menyimpan ke Sistem..." : loading ? "Memproses OCR..." : "Simpan Arsip Digital"}
+            <button type="submit" disabled={isSaving || loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-bold uppercase tracking-[0.3em] text-[11px] shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 outline-none">
+              {isSaving ? "Menyimpan ke Sistem..." : "Simpan Arsip Digital"}
             </button>
           </form>
         </div>
@@ -426,17 +358,11 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components
+// Reusable Components (UTUH)
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-    <input
-      value={value ?? ""}
-      {...props}
-      className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all ${
-        error ? 'border-red-400 focus:ring-1 focus:ring-red-400 bg-red-50/30' : 'border-slate-100 focus:ring-1 focus:ring-indigo-50'
-      }`}
-    />
+    <input value={value ?? ""} {...props} className={`w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all ${error ? 'border-red-400 bg-red-50/30' : 'border-slate-100 focus:ring-1 focus:ring-indigo-50'}`} />
     {error && <span className="text-[9px] text-red-500 font-bold ml-1">{error[0]}</span>}
   </div>
 );
@@ -444,11 +370,7 @@ const Input = ({ label, value, error, ...props }) => (
 const Select = ({ label, options, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-    <select
-      value={value ?? ""}
-      {...props}
-      className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all"
-    >
+    <select value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all">
       {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
     </select>
   </div>
@@ -457,10 +379,6 @@ const Select = ({ label, options, value, error, ...props }) => (
 const Textarea = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-    <textarea
-      value={value ?? ""}
-      {...props}
-      className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all min-h-[100px] resize-none"
-    />
+    <textarea value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all min-h-[100px] resize-none" />
   </div>
 );
