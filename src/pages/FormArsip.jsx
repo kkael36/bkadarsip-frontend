@@ -200,7 +200,7 @@ export default function FormArsip() {
       let errorMsg = "Gagal memproses dokumen.";
       
       if (error.code === 'ECONNABORTED') errorMsg = "Waktu pemrosesan terlalu lama (Timeout). Coba lagi.";
-      if (!error.response) errorMsg = "Koneksi ke server terputus. Cek internet lu.";
+      if (!error.response) errorMsg = "Koneksi ke server terputus. Cek koneksiinternet.";
 
       setAlert({ 
         show: true, 
