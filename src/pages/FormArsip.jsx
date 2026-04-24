@@ -6,7 +6,7 @@ import DocumentScanner from "../components/DocumentScanner";
 import api from "../services/api";
 import Alert from "../components/Alert";
 
-// Pastikan sudah install: npm install bootstrap-icons
+// Import Bootstrap Icons
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 export default function FormArsip() {
@@ -19,10 +19,10 @@ export default function FormArsip() {
   const [errors, setErrors] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
-
-  // --- STATE TOGGLE HINT (BARU) ---
-  const [showHintMain, setShowHintMain] = useState(false);
-  const [showHintModal, setShowHintModal] = useState(false);
+  
+  // --- STATE UNTUK TOGGLE HINT ---
+  const [showMainHint, setShowMainHint] = useState(false);
+  const [showModalHint, setShowModalHint] = useState(false);
 
   // --- STATE POTONG & MODAL ---
   const [imgSrc, setImgSrc] = useState('');
@@ -137,7 +137,7 @@ export default function FormArsip() {
       if (res.data.success) {
         setForm(prev => ({ ...prev, ...res.data, file_dokumen: res.data.file_dokumen }));
         setEnhanced(res.data.file_dokumen);
-        setAlert({ show: true, message: "OCR Berhasil! Data diinput otomatis.", type: "update" });
+        setAlert({ show: true, message: "OCR Berhasil! Data terisi otomatis.", type: "update" });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
         setTimeLeft(180);
       }
@@ -165,7 +165,6 @@ export default function FormArsip() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 mt-6 font-sans text-slate-700 pb-20">
       <style>{customCropStyles}</style>
-      
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
       {/* --- MODAL POTONG --- */}
@@ -174,27 +173,29 @@ export default function FormArsip() {
           <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-fit max-w-[95vw] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none ml-1">Potong Dokumen</h3>
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none">Potong Dokumen</h3>
                 <button 
                   type="button"
-                  onClick={() => setShowHintModal(!showHintModal)}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${showHintModal ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 hover:text-indigo-600'}`}
+                  onClick={() => setShowModalHint(!showModalHint)}
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${showModalHint ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-indigo-600'}`}
                 >
-                  <i className={`bi ${showHintModal ? 'bi-x-circle-fill' : 'bi-info-circle-fill'} text-xs`}></i>
+                  <i className={`bi ${showModalHint ? 'bi-x-circle-fill' : 'bi-info-circle-fill'} text-xs`}></i>
                 </button>
               </div>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl px-2">×</button>
             </div>
             
-            {showHintModal && (
-              <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 animate-in slide-in-from-top-2 duration-300">
-                <p className="text-[10px] text-indigo-700 font-bold leading-relaxed flex items-start gap-2">
-                   <i className="bi bi-lightbulb-fill text-indigo-500"></i>
-                   Potong area dokumen untuk meningkatkan akurasi sistem pembacaan data.
-                </p>
-                <p className="text-[9px] text-amber-600 font-medium mt-1 ml-5">
-                   Perhatian: Jangan memotong terlalu mepet ke teks agar setiap karakter terbaca secara utuh.
-                </p>
+            {showModalHint && (
+              <div className="p-5 bg-slate-50/80 border-b border-slate-100 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-white border border-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i className="bi bi-lightbulb-fill text-indigo-600 text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-600 font-bold leading-tight uppercase tracking-wider">Tips Akurasi Scan:</p>
+                    <p className="text-[10px] text-slate-500 leading-tight mt-1">Potong area yang berisi teks utama untuk hasil pembacaan maksimal. <span className="text-amber-600 font-bold italic">Hindari memotong terlalu mepet agar karakter teks tidak hilang.</span></p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -207,8 +208,8 @@ export default function FormArsip() {
             </div>
 
             <div className="p-5 bg-white border-t flex gap-3 flex-shrink-0">
-              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase transition-all">Batal</button>
-              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold text-[10px] shadow-lg active:scale-95 transition-all uppercase tracking-wider">Potong & Scan Sekarang</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest">Batal</button>
+              <button onClick={executeCropAndUpload} className="flex-[2] bg-indigo-600 text-white py-3 rounded-2xl font-bold text-[10px] shadow-lg active:scale-95 transition-all uppercase tracking-widest">Potong & Scan Sekarang</button>
             </div>
           </div>
         </div>
@@ -216,34 +217,35 @@ export default function FormArsip() {
 
       {/* --- HEADER AREA --- */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
-        <div className="text-left">
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
-          <p className="text-xs text-slate-400 font-medium mt-1">Lengkapi data arsip SP2D secara digital</p>
+        <div className="flex items-center gap-4">
+          <div className="text-left">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
+            <p className="text-xs text-slate-400 font-medium mt-1 leading-none">Lengkapi data arsip SP2D secara digital</p>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setShowMainHint(!showMainHint)}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border ${showMainHint ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-indigo-400'}`}
+          >
+            <i className={`bi ${showMainHint ? 'bi-x-lg' : 'bi-question-lg'} text-sm`}></i>
+          </button>
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-          {showHintMain && (
-            <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl animate-in zoom-in-95 duration-300 max-w-sm">
+          {showMainHint && (
+            <div className="bg-slate-50/80 border border-slate-100 p-4 rounded-2xl animate-in zoom-in-95 duration-300 max-w-sm xl:max-w-md text-left">
               <div className="flex gap-3">
-                <i className="bi bi-question-circle-fill text-indigo-600 text-lg"></i>
-                <div className="text-left">
+                <i className="bi bi-info-circle-fill text-indigo-600 text-lg"></i>
+                <div>
                   <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest block mb-0.5">Panduan Scan Otomatis:</span>
                   <p className="text-[10px] text-slate-500 leading-tight">
-                    Unggah foto dokumen → Potong bagian isi → Tunggu proses (estimasi 1-3 menit). 
-                    <span className="text-indigo-600 font-bold ml-1 italic">Mohon periksa kembali kesesuaian data sebelum melakukan penyimpanan.</span>
+                    Unggah foto → Potong bagian teks utama → Tunggu proses sistem (estimasi 1-3 menit). 
+                    <span className="text-indigo-600 font-bold ml-1">Wajib periksa kembali hasil input otomatis sebelum melakukan penyimpanan.</span>
                   </p>
                 </div>
               </div>
             </div>
           )}
-
-          <button 
-            type="button" 
-            onClick={() => setShowHintMain(!showHintMain)}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border ${showHintMain ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-400'}`}
-          >
-            <i className={`bi ${showHintMain ? 'bi-x-lg' : 'bi-question-lg'} text-sm`}></i>
-          </button>
 
           <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold h-9 border border-slate-200/50 transition-all leading-none">
             Kembali
@@ -252,9 +254,9 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* KOLOM KIRI */}
+        {/* KOLOM KIRI (UTUH) */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
-          <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden text-left">
+          <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
               <DocumentScanner onCrop={handleSelectFile} />
             </div>
@@ -266,23 +268,23 @@ export default function FormArsip() {
                 <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
                   {loading && (
-                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 text-white">
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2">
                       <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-                      <span className="text-[10px] font-bold tracking-widest uppercase">Sedang Membaca...</span>
+                      <span className="text-[10px] text-white font-bold tracking-widest">MEMPROSES OCR...</span>
                     </div>
                   )}
                 </div>
                 <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl outline-none leading-none">
-                  <i className="bi bi-trash3-fill mr-1.5 text-[9px]"></i> Hapus File Cloudinary
+                  <i className="bi bi-trash3-fill mr-1.5 text-[9px]"></i> Hapus Cloudinary
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* KOLOM KANAN (PASTI KOMPLIT) */}
-        <div className="lg:col-span-7">
-          <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
+        {/* KOLOM KANAN (KOMPLIT GAK ADA YANG ILANG) */}
+        <div className="lg:col-span-7 text-left">
+          <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 relative">
             <div className="space-y-5">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-4 bg-indigo-600 rounded-full"></div>
@@ -328,7 +330,7 @@ export default function FormArsip() {
   );
 }
 
-// Reusable Components
+// Reusable Components (Sesuai Style Lu)
 const Input = ({ label, value, error, ...props }) => (
   <div className="flex flex-col gap-1.5 text-left">
     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
