@@ -20,7 +20,7 @@ export default function FormArsip() {
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
   
-  // --- 🔥 STATE HINT (PASTI SAMA DENGAN DI BAWAH) ---
+  // --- 🔥 STATE HINT (NAMA SUDAH FIX) ---
   const [showMainHint, setShowMainHint] = useState(false);
   const [showModalHint, setShowModalHint] = useState(false);
 
@@ -172,7 +172,7 @@ export default function FormArsip() {
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-fit max-w-[95vw] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-left">
                 <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none ml-1">Potong Dokumen</h3>
                 <button 
                   type="button"
@@ -191,7 +191,7 @@ export default function FormArsip() {
                   <i className="bi bi-lightbulb-fill text-indigo-500 text-lg mt-0.5"></i>
                   <div>
                     <p className="text-[10px] text-indigo-700 font-bold leading-tight uppercase tracking-wider">Tips Akurasi Scan:</p>
-                    <p className="text-[10px] text-slate-600 leading-snug mt-1">Potong area yang berisi teks utama untuk hasil maksimal. <span className="text-amber-600 font-bold">Harap berikan sedikit jarak di tepi teks agar karakter tidak terpotong.</span></p>
+                    <p className="text-[10px] text-slate-600 leading-snug mt-1">Potong area yang berisi teks utama untuk hasil maksimal. <span className="text-amber-600 font-bold italic">Harap berikan sedikit jarak di tepi teks agar karakter tidak terpotong.</span></p>
                   </div>
                 </div>
               </div>
@@ -215,8 +215,8 @@ export default function FormArsip() {
 
       {/* --- HEADER AREA --- */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
-        <div className="flex items-center gap-4">
-          <div className="text-left">
+        <div className="flex items-center gap-4 text-left">
+          <div>
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
             <p className="text-xs text-slate-400 font-medium mt-1 leading-none">Lengkapi data arsip SP2D secara digital</p>
           </div>
@@ -252,8 +252,9 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
+        {/* KOLOM KIRI */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
-          <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden text-left">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
               <DocumentScanner onCrop={handleSelectFile} />
             </div>
@@ -266,7 +267,7 @@ export default function FormArsip() {
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
                   {loading && (
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 text-white">
-                      <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
                       <span className="text-[10px] font-bold tracking-widest uppercase">Membaca Data...</span>
                     </div>
                   )}
@@ -279,6 +280,7 @@ export default function FormArsip() {
           )}
         </div>
 
+        {/* KOLOM KANAN */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 relative">
             <div className="space-y-5">
