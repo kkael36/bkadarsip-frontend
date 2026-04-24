@@ -20,7 +20,7 @@ export default function FormArsip() {
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
   
-  // --- 🔥 STATE HINT (NAMA SUDAH FIX) ---
+  // --- 🔥 STATE HINT (PASTI SAMA DENGAN PANGGILAN DI JSX) ---
   const [showMainHint, setShowMainHint] = useState(false);
   const [showModalHint, setShowModalHint] = useState(false);
 
@@ -191,7 +191,7 @@ export default function FormArsip() {
                   <i className="bi bi-lightbulb-fill text-indigo-500 text-lg mt-0.5"></i>
                   <div>
                     <p className="text-[10px] text-indigo-700 font-bold leading-tight uppercase tracking-wider">Tips Akurasi Scan:</p>
-                    <p className="text-[10px] text-slate-600 leading-snug mt-1">Potong area yang berisi teks utama untuk hasil maksimal. <span className="text-amber-600 font-bold italic">Harap berikan sedikit jarak di tepi teks agar karakter tidak terpotong.</span></p>
+                    <p className="text-[10px] text-slate-600 leading-snug mt-1">Potong area yang berisi teks utama untuk hasil maksimal. <span className="text-amber-600 font-bold">Harap berikan sedikit jarak di tepi teks agar karakter tidak terpotong.</span></p>
                   </div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function FormArsip() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left text-slate-700">
         {/* KOLOM KIRI */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden text-left">
