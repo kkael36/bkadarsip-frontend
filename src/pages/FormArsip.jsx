@@ -90,12 +90,12 @@ export default function FormArsip() {
         await api.delete("/delete-temp-file", { data: { filename: urlToDelete } });
         setAlert({ 
           show: true, 
-          message: "Sesi habis. Foto di Cloudinary telah dihapus otomatis.", 
+          message: "Sesi habis. Foto dihapus otomatis.", 
           type: "hapus" 
         });
         setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
       } catch (error) {
-        console.error("Gagal menghapus file di Cloudinary:", error);
+        console.error("Gagal menghapus file:", error);
       }
     }
   };
@@ -118,7 +118,6 @@ export default function FormArsip() {
     setShowModal(true);
   };
 
-  // 🔥 INITIAL CROP: DIBIKIN FULL 100% DARI AWAL
   const onImageLoad = (e) => {
     setCrop({
       unit: '%',
@@ -168,7 +167,11 @@ export default function FormArsip() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await api.post("/upload-sp2d", formData);
+      // 🔥 FIX: Tambahkan timeout manual di request ini biar frontend sabar nunggu backend
+      const res = await api.post("/upload-sp2d", formData, {
+        timeout: 300000 // 5 Menit (300.000 ms)
+      });
+      
       setOcrDebug({
         raw: res.data.raw_ocr?.substring(0, 500),
         parsed: res.data
@@ -193,8 +196,18 @@ export default function FormArsip() {
         throw new Error(res.data.error || "Upload gagal");
       }
     } catch (error) {
-      setAlert({ show: true, message: "Gagal memproses dokumen.", type: "hapus" });
-      setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 4000);
+      console.error("Upload Error Details:", error);
+      let errorMsg = "Gagal memproses dokumen.";
+      
+      if (error.code === 'ECONNABORTED') errorMsg = "Waktu pemrosesan terlalu lama (Timeout). Coba lagi.";
+      if (!error.response) errorMsg = "Koneksi ke server terputus. Cek internet lu.";
+
+      setAlert({ 
+        show: true, 
+        message: errorMsg, 
+        type: "hapus" 
+      });
+      setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 5000);
     } finally { 
       setLoading(false);
     }
@@ -228,7 +241,6 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL CROP (FIT VIEWPORT & FULL CROP) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-fit max-w-[95vw] overflow-hidden animate-in zoom-in-95 duration-200">
@@ -264,7 +276,6 @@ export default function FormArsip() {
         </div>
       )}
 
-      {/* HEADER AREA */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
         <div className="text-left w-full md:w-auto">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
@@ -278,7 +289,6 @@ export default function FormArsip() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* KOLOM KIRI */}
         <div className="lg:col-span-5 space-y-6 lg:h-full">
           <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="bg-slate-50/50 p-8 rounded-[1.8rem] border border-dashed border-slate-200 group hover:border-indigo-400 transition-all cursor-pointer text-center">
@@ -288,7 +298,7 @@ export default function FormArsip() {
 
           {(preview || enhanced) && (
             <div className="sticky top-6 animate-in fade-in zoom-in-95 duration-300">
-              <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm p-2 text-center">
+              <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-2 text-center">
                 <div className="relative rounded-[1.8rem] overflow-hidden bg-slate-50">
                   <img src={enhanced || preview} className="w-full h-auto" alt="Preview" />
                   {loading && (
@@ -305,7 +315,6 @@ export default function FormArsip() {
           )}
         </div>
 
-        {/* KOLOM KANAN (PASTI KOMPLIT GAK ADA YANG ILANG) */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2rem] shadow-sm p-8 space-y-8 text-left relative">
             <div className="space-y-5">
