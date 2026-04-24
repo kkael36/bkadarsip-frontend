@@ -352,3 +352,4 @@ const Textarea = ({ label, value, ...props }) => (
     <textarea value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all min-h-[100px] resize-none leading-none" />
   </div>
 );
+
