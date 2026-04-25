@@ -19,10 +19,6 @@ export default function FormArsip() {
   const [errors, setErrors] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
-  
-  // --- 🔥 STATE HINT (PASTI SAMA DENGAN PANGGILAN DI JSX) ---
-  const [showMainHint, setShowMainHint] = useState(false);
-  const [showModalHint, setShowModalHint] = useState(false);
 
   // --- STATE POTONG & MODAL ---
   const [imgSrc, setImgSrc] = useState('');
@@ -167,35 +163,29 @@ export default function FormArsip() {
       <style>{customCropStyles}</style>
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL POTONG --- */}
+      {/* --- MODAL POTONG DENGAN HOVER HINT (GAYA KODE KEDUA) --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-fit max-w-[95vw] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
               <div className="flex items-center gap-2 text-left">
                 <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest leading-none ml-1">Potong Dokumen</h3>
-                <button 
-                  type="button"
-                  onClick={() => setShowModalHint(!showModalHint)}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${showModalHint ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:text-indigo-600'}`}
-                >
-                  <i className={`bi ${showModalHint ? 'bi-x-circle-fill' : 'bi-info-circle-fill'} text-sm`}></i>
-                </button>
-              </div>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl px-2 transition-colors">×</button>
-            </div>
-            
-            {showModalHint && (
-              <div className="bg-indigo-50/50 p-5 border-b border-indigo-100 animate-in slide-in-from-top-2 duration-300">
-                <div className="flex items-start gap-3 text-left">
-                  <i className="bi bi-lightbulb-fill text-indigo-500 text-lg mt-0.5"></i>
-                  <div>
-                    <p className="text-[10px] text-indigo-700 font-bold leading-tight uppercase tracking-wider">Tips Akurasi Scan:</p>
-                    <p className="text-[10px] text-slate-600 leading-snug mt-1">Potong area yang berisi teks utama untuk hasil maksimal. <span className="text-amber-600 font-bold">Harap berikan sedikit jarak di tepi teks agar karakter tidak terpotong.</span></p>
+                {/* HOVER HINT di modal crop - pakai group, tanpa state klik */}
+                <div className="relative group">
+                  <button
+                    type="button"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center bg-slate-50 text-slate-400 hover:text-indigo-600 transition-all"
+                  >
+                    <i className="bi bi-info-circle-fill text-sm"></i>
+                  </button>
+                  <div className="absolute left-0 top-8 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-5 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[60] leading-relaxed">
+                    <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Tips Akurasi Scan:</p>
+                    <p className="text-[10px] text-slate-600 leading-snug">Potong area yang berisi teks utama untuk hasil maksimal. <span className="text-amber-600 font-bold">Harap berikan sedikit jarak di tepi teks agar karakter tidak terpotong.</span></p>
                   </div>
                 </div>
               </div>
-            )}
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 text-2xl px-2 transition-colors">×</button>
+            </div>
 
             <div className="bg-slate-100 flex-1 flex justify-center items-center overflow-hidden p-4">
               <div className="relative flex justify-center items-center overflow-hidden rounded-xl">
@@ -213,37 +203,31 @@ export default function FormArsip() {
         </div>
       )}
 
-      {/* --- HEADER AREA --- */}
+      {/* --- HEADER AREA DENGAN HOVER HINT (GAYA KODE KEDUA) --- */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
-        <div className="flex items-center gap-4 text-left">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
-            <p className="text-xs text-slate-400 font-medium mt-1 leading-none">Lengkapi data arsip SP2D secara digital</p>
-          </div>
-          <button 
-            type="button" 
-            onClick={() => setShowMainHint(!showMainHint)}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border ${showMainHint ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-400'}`}
-          >
-            <i className={`bi ${showMainHint ? 'bi-x-lg' : 'bi-question-lg'} text-sm`}></i>
-          </button>
+        <div className="text-left w-full lg:w-auto">
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
+          <p className="text-xs text-slate-400 font-medium mt-1 leading-none">Lengkapi data arsip SP2D secara digital</p>
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-          {showMainHint && (
-            <div className="bg-slate-50/80 border border-slate-100 p-4 rounded-2xl animate-in zoom-in-95 duration-300 max-w-sm xl:max-w-md text-left">
-              <div className="flex gap-3">
-                <i className="bi bi-info-circle-fill text-indigo-600 text-lg"></i>
-                <div>
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest block mb-0.5">Panduan Scan Otomatis:</span>
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    Unggah foto dokumen → Potong bagian isi → Tunggu proses (estimasi 1-3 menit). 
-                    <span className="text-indigo-600 font-bold ml-1 italic">Mohon periksa kembali kesesuaian data sebelum melakukan penyimpanan.</span>
-                  </p>
-                </div>
-              </div>
+          {/* HOVER HINT dengan lampu (gaya kode kedua) */}
+          <div className="relative group">
+            <button
+              type="button"
+              className="w-9 h-9 flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white rounded-xl transition shadow-sm border border-slate-200/50"
+              title="Informasi Sistem"
+            >
+              <i className="bi bi-lightbulb text-lg text-yellow-500 group-hover:text-yellow-300"></i>
+            </button>
+
+            <div className="absolute right-0 top-11 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-5 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[60] leading-relaxed">
+              <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Keamanan Data Temporer</p>
+              Foto dokumen bersifat temporer. Jika dalam <span className="font-bold text-red-500">3 menit</span> data tidak disimpan, foto akan dihapus otomatis dari memori server untuk menjaga keamanan arsip.
+              <br /><br />
+              Pengguna tetap diwajibkan melakukan pemeriksaan ulang terhadap seluruh data hasil OCR sebelum menyimpan arsip.
             </div>
-          )}
+          </div>
 
           <button type="button" onClick={() => navigate(-1)} className="bg-slate-100 text-slate-500 hover:bg-slate-200 px-6 py-2 rounded-xl text-xs font-bold h-9 border border-slate-200/50 transition-all leading-none">
             Kembali
@@ -271,9 +255,19 @@ export default function FormArsip() {
                       <span className="text-[10px] font-bold tracking-widest uppercase">Membaca Data...</span>
                     </div>
                   )}
+                  {timeLeft !== null && !loading && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-md text-white px-5 py-2 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-3 shadow-2xl border border-white/10 whitespace-nowrap">
+                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                      FOTO EXPIRED DALAM: <span className="font-black text-red-400">{formatTime(timeLeft)}</span>
+                    </div>
+                  )}
                 </div>
-                <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl outline-none leading-none">
-                  <i className="bi bi-trash3-fill mr-1.5 text-[9px]"></i> Hapus File Cloudinary
+                <button
+                  type="button"
+                  onClick={handleExpire}
+                  className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-600 uppercase tracking-widest transition-all duration-300 rounded-xl outline-none"
+                >
+                  <i className="bi bi-trash3-fill mr-1.5 text-[9px]"></i> Hapus & Batalkan
                 </button>
               </div>
             </div>
@@ -352,4 +346,3 @@ const Textarea = ({ label, value, ...props }) => (
     <textarea value={value ?? ""} {...props} className="w-full bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none transition-all min-h-[100px] resize-none leading-none" />
   </div>
 );
-
