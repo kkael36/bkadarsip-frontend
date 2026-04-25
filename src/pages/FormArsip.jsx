@@ -239,14 +239,13 @@ export default function FormArsip() {
       
       {alert.show && <Alert message={alert.message} type={alert.type} onClose={() => setAlert({ ...alert, show: false })} />}
 
-      {/* --- MODAL POTONG DENGAN HINT --- */}
+      {/* --- MODAL POTONG --- */}
       {showModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] shadow-2xl flex flex-col w-fit max-w-[95vw] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b flex justify-between items-center bg-white flex-shrink-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-slate-800 text-xs uppercase tracking-widest">Potong Dokumen</h3>
-                {/* HINT DI MODAL CROP */}
                 <div className="relative group">
                   <button
                     type="button"
@@ -254,14 +253,8 @@ export default function FormArsip() {
                   >
                     <i className="bi bi-info-circle-fill text-sm"></i>
                   </button>
-                  <div className="absolute left-0 top-8 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-4 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[60] leading-relaxed">
-                    <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Tips Memotong Dokumen</p>
-                    <p className="text-[10px] text-slate-600 leading-snug">
-                      Potong area yang hanya berisi teks utama untuk meningkatkan akurasi pembacaan oleh sistem.
-                    </p>
-                    <p className="text-[10px] text-amber-600 leading-snug mt-2 font-medium">
-                      ⚠️ Hindari memotong terlalu mepet dengan tepi teks, karena dapat mengurangi hasil pembacaan OCR.
-                    </p>
+                  <div className="absolute right-0 top-8 w-72 bg-white border border-slate-200 shadow-xl rounded-xl p-3 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] leading-relaxed">
+                    <p className="text-[10px] text-slate-600">Potong area yang berisi teks utama untuk hasil terbaik. Hindari memotong terlalu mepet dengan tepi teks agar karakter tidak terpotong.</p>
                   </div>
                 </div>
               </div>
@@ -295,7 +288,7 @@ export default function FormArsip() {
         </div>
       )}
 
-      {/* --- HEADER AREA DENGAN HINT DI SEBELAH TOMBOL KEMBALI --- */}
+      {/* --- HEADER AREA --- */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 mt-6 rounded-[2rem] border border-slate-50 shadow-sm gap-4">
         <div className="text-left w-full md:w-auto">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">Input Arsip Baru</h2>
@@ -303,28 +296,16 @@ export default function FormArsip() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          {/* HINT LAMPU DENGAN KETERANGAN */}
           <div className="relative group">
             <button
               type="button"
               className="w-9 h-9 flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white rounded-xl transition shadow-sm border border-slate-200/50"
             >
-              <i className="bi bi-lightbulb text-lg text-yellow-500 group-hover:text-yellow-300"></i>
+              <i className="bi bi-lightbulb text-base"></i>
             </button>
-
-            <div className="absolute right-0 top-11 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl p-4 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[60] leading-relaxed">
-              <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest text-[10px]">Panduan Scan Otomatis (OCR)</p>
-              <p className="text-[10px] text-slate-600 leading-snug">
-                1. Unggah foto dokumen melalui tombol di samping<br/>
-                2. Potong area teks yang ingin dibaca<br/>
-                3. Tunggu proses pembacaan (estimasi 1-3 menit)
-              </p>
-              <p className="text-[10px] text-red-500 leading-snug mt-2 font-medium">
-                ⚠️ Waktu tersisa untuk menyimpan data adalah <span className="font-bold">3 menit</span>. Setelah habis, file akan dihapus otomatis dari server.
-              </p>
-              <p className="text-[10px] text-amber-600 leading-snug mt-2 font-medium">
-                ⚠️ Harap periksa kembali seluruh data hasil OCR sebelum melakukan penyimpanan untuk memastikan keakuratan arsip.
-              </p>
+            <div className="absolute right-0 top-10 w-72 bg-white border border-slate-200 shadow-xl rounded-xl p-3 text-xs text-slate-500 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] leading-relaxed">
+              <p className="text-[10px] text-slate-600">1. Upload foto dokumen<br/>2. Potong area teks yang akan dibaca<br/>3. Tunggu proses OCR (1-3 menit)</p>
+              <p className="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-100">Waktu tersisa 3 menit sebelum file dihapus otomatis. Periksa kembali data hasil OCR sebelum menyimpan.</p>
             </div>
           </div>
 
@@ -360,7 +341,7 @@ export default function FormArsip() {
                   )}
                 </div>
                 <button type="button" onClick={handleExpire} className="w-full mt-2 py-4 text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest transition-all rounded-xl outline-none">
-                  × Batalkan & Hapus 
+                  Batalkan & Hapus
                 </button>
               </div>
             </div>
